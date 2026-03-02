@@ -13,8 +13,7 @@ const CONFIG = {
         return this.isTest ? 10000 : 2000;
     },
 
-    // テストモード用の基準時刻
-    testBaseTime: new Date("2024-01-01T16:10:10"),
+    testBaseTime: new Date("2024-01-01T16:10:19"),
     _testStartedAt: Date.now(),
 
     getSimulatedTime() {
@@ -27,22 +26,20 @@ const CONFIG = {
 };
 //=====
 
-// テスト/本番切り替えボタン
 const toggleBtn = document.createElement('a');
 toggleBtn.className = 'feedback-button';
 toggleBtn.target = '_self';
 
 if (CONFIG.isTest) {
-    toggleBtn.href = window.location.pathname;  // ?testなしのURL（本番）
+    toggleBtn.href = window.location.pathname;
     toggleBtn.textContent = 'テストモードを終了';
 } else {
-    toggleBtn.href = window.location.pathname + '?test';  // ?test付きのURL
+    toggleBtn.href = window.location.pathname + '?test';
     toggleBtn.textContent = 'テストモード';
 }
 
 document.querySelector('.side-panel').appendChild(toggleBtn);
 
-// map
 var map = L.map('map', {
     scrollWheelZoom: false,
     smoothWheelZoom: true,
@@ -94,7 +91,7 @@ map.createPane("shindo60").style.zIndex = 60;
 map.createPane("shindo70").style.zIndex = 70;
 map.createPane("shingen").style.zIndex = 100;
 map.createPane("tsunami_map").style.zIndex = 110;
-
+map.createPane("eew_shingen").style.zIndex = 101;
 map.createPane("pwave").style.zIndex = 80;
 map.createPane("swave").style.zIndex = 81;
 
@@ -103,18 +100,27 @@ let shindoFilledLayer = L.layerGroup().addTo(map);
 let JMAPointsJson = null;
 let shindoCanvasLayer = null;
 let hypoMarker = null;
+let eewHypoMarker = null;
 let stationMap = {};
 let japan_data = null;
 let filled_list = {};
 
 var pwave = L.circle([0, 0], {
     radius: 0, pane: "pwave",
-    color: 'blue', fillColor: '#399ade', fillOpacity: 0.5,
+    color: '#d9f6ff',
+    fillColor: '#00000000',
+    fillOpacity: 0.5,
+    weight: 1,
+    opacity: 1,
 }).addTo(map);
 
 var swave = L.circle([0, 0], {
     radius: 0, pane: "swave",
-    color: '#dc143c', fillColor: '#dc143c', fillOpacity: 0.1,
+    color: '#dc143c',
+    fillColor: '#dc143c',
+    fillOpacity: 0.1,
+    weight: 1.5,
+    opacity: 1,
 }).addTo(map);
 
 const PolygonLayer_Style = {
@@ -556,7 +562,6 @@ function updateEarthquakeParam(time, scale, name, magnitude, depth, tsunami) {
     if (tsunamiClassMap[tsunami]) tsunami_class.classList.add(tsunamiClassMap[tsunami]);
 }
 
-// UI更新
 function updateEqHistory(eqData) {
     const container = document.getElementById("eq-history-list");
     container.innerHTML = "";
@@ -650,10 +655,7 @@ function enableDragScroll(element, options = {}) {
 const scrollable = document.querySelector('.side-panel');
 enableDragScroll(scrollable, { speed: 1 });
 
-//=====
-// 読み上げ機能
-//=====
-
+// 読み上げ
 const SpeechConfig = {
     enabled: true,
     minScale: 0,
@@ -808,35 +810,123 @@ function getFormattedTime(date) {
     };
 }
 
+let interpolationData = {
+    active: false,
+    hypoCenter: null,
+    originTime: null,
+    depth: 0,
+    lastPRadius: 0,
+    lastSRadius: 0,
+    lastCheckTime: null
+};
+
+const WAVE_VELOCITY = { P: 6.0, S: 3.5 };
+
+function calculateRadius(velocity, elapsedSeconds, depthKm) {
+    const distance = velocity * elapsedSeconds;
+    const rSquared = distance * distance - depthKm * depthKm;
+    return rSquared > 0 ? Math.sqrt(rSquared) : 0;
+}
+
 function updatePSWave() {
     const now = CONFIG.getSimulatedTime();
     const { dateStr, timeStr } = getFormattedTime(now);
 
     $.getJSON(`https://weather-kyoshin.west.edge.storage-yahoo.jp/RealTimeData/${dateStr}/${timeStr}.json?${now.getTime()}`)
-    .done(function(yahoo_data) {
-        if (!yahoo_data.psWave) {
-            swave.setRadius(0);
-            pwave.setRadius(0);
-            return;
+        .done(function(yahoo_data) {
+            if (!yahoo_data.psWave || !yahoo_data.hypoInfo?.items?.[0]) {
+                interpolationData.active = false;
+                pwave.setRadius(0);
+                swave.setRadius(0);
+                if (eewHypoMarker) eewHypoMarker.remove();
+                eewHypoMarker = null;
+
+                if (shindoCanvasLayer) shindoCanvasLayer._canvas.style.display = '';
+                map.getPane('pane_map_filled').style.display = '';
+                map.getPane('shingen').style.display = '';
+                return;
+            }
+
+            if (shindoCanvasLayer) shindoCanvasLayer._canvas.style.display = 'none';
+            map.getPane('pane_map_filled').style.display = 'none';
+            map.getPane('shingen').style.display = 'none';
+
+            const psItem = yahoo_data.psWave.items[0];
+            const hypoItem = yahoo_data.hypoInfo.items[0];
+
+            const lat = parseFloat(psItem.latitude.replace("N", ""));
+            const lng = parseFloat(psItem.longitude.replace("E", ""));
+            const center = new L.LatLng(lat, lng);
+
+            const originTime = new Date(hypoItem.originTime);
+            const depthMatch = hypoItem.depth.match(/^(\d+)/);
+            const depth = depthMatch ? parseFloat(depthMatch[1]) : 0;
+
+            interpolationData.active = true;
+            interpolationData.hypoCenter = center;
+            interpolationData.originTime = originTime;
+            interpolationData.depth = depth;
+            interpolationData.lastPRadius = parseFloat(psItem.pRadius);
+            interpolationData.lastSRadius = parseFloat(psItem.sRadius);
+            interpolationData.lastCheckTime = now;
+
+            const eewIcon = L.icon({
+                iconUrl: 'source/eew-shingen.png',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20],
+            });
+            if (!eewHypoMarker) {
+                eewHypoMarker = L.marker(center, { icon: eewIcon, pane: "eew_shingen" }).addTo(map);
+            } else {
+                eewHypoMarker.setLatLng(center);
+            }
+
+            drawWaveCircles(now);
+        })
+        .fail(function() {
+            interpolationData.active = false;
+        });
+}
+
+function interpolateAndDraw() {
+    if (interpolationData.active && interpolationData.originTime) {
+        const now = CONFIG.getSimulatedTime();
+        drawWaveCircles(now);
+    }
+    requestAnimationFrame(interpolateAndDraw);
+}
+
+function drawWaveCircles(now) {
+    if (!interpolationData.hypoCenter || !interpolationData.originTime) return;
+
+    const elapsedSeconds = (now - interpolationData.originTime) / 1000;
+    if (elapsedSeconds < 0) return;
+    
+    const depth = interpolationData.depth;
+
+    let pRadius = calculateRadius(WAVE_VELOCITY.P, elapsedSeconds, depth);
+    let sRadius = calculateRadius(WAVE_VELOCITY.S, elapsedSeconds, depth);
+
+    if (interpolationData.lastCheckTime) {
+        const timeSinceCheck = (now - interpolationData.lastCheckTime) / 1000;
+        if (timeSinceCheck > 0.8) {
+            const expectedPRadius = calculateRadius(WAVE_VELOCITY.P, elapsedSeconds, depth);
+            const expectedSRadius = calculateRadius(WAVE_VELOCITY.S, elapsedSeconds, depth);
+            
+            const correctionFactor = 0;
+            pRadius = expectedPRadius * (1 - correctionFactor) + interpolationData.lastPRadius * correctionFactor;
+            sRadius = expectedSRadius * (1 - correctionFactor) + interpolationData.lastSRadius * correctionFactor;
         }
+    }
 
-        const item = yahoo_data.psWave.items[0];
-        const p = item.pRadius * 1000;
-        const s = item.sRadius * 1000;
-        const lat = item.latitude.replace("N", "");
-        const lng = item.longitude.replace("E", "");
-        const center = new L.LatLng(lat, lng);
-
-        pwave.setLatLng(center);
-        pwave.setRadius(p);
-        swave.setLatLng(center);
-        swave.setRadius(s);
-    })
-    .fail(function() {
-        swave.setRadius(0);
-        pwave.setRadius(0);
-    });
+    pwave.setLatLng(interpolationData.hypoCenter);
+    pwave.setRadius(pRadius * 1000);
+    
+    swave.setLatLng(interpolationData.hypoCenter);
+    swave.setRadius(sRadius * 1000);
 }
 
 setInterval(updatePSWave, 1000);
 updatePSWave();
+
+requestAnimationFrame(interpolateAndDraw);
