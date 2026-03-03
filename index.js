@@ -6,14 +6,14 @@ const CONFIG = {
     get apiurl() {
         return this.isTest
         ? "./source/testNotoEq.json"
-        : "https://api.p2pquake.net/v2/history?codes=551&limit=15"
+        : "https://eqf-worker.spdev-3141.workers.dev/api/p2pquake?codes=551&limit=15"
     },
 
     get updateInterval() {
         return this.isTest ? 10000 : 2000;
     },
 
-    testBaseTime: new Date("2024-01-01T16:10:19"),
+    testBaseTime: new Date("2024-01-01T16:10:14"),
     _testStartedAt: Date.now(),
 
     getSimulatedTime() {
@@ -89,7 +89,8 @@ map.createPane("shindo50").style.zIndex = 50;
 map.createPane("shindo55").style.zIndex = 55;
 map.createPane("shindo60").style.zIndex = 60;
 map.createPane("shindo70").style.zIndex = 70;
-map.createPane("shingen").style.zIndex = 100;
+map.createPane("shindo_canvas").style.zIndex = 200;
+map.createPane("shingen").style.zIndex = 400;
 map.createPane("tsunami_map").style.zIndex = 110;
 map.createPane("eew_shingen").style.zIndex = 101;
 map.createPane("pwave").style.zIndex = 80;
@@ -104,6 +105,12 @@ let eewHypoMarker = null;
 let stationMap = {};
 let japan_data = null;
 let filled_list = {};
+let eewBlinkInterval = null;
+let eewBlinkState = false;
+
+const shindoCanvasPane = map.createPane("shindo_canvas");
+shindoCanvasPane.style.zIndex = 200;
+shindoCanvasPane.style.overflow = 'visible';
 
 var pwave = L.circle([0, 0], {
     radius: 0, pane: "pwave",
@@ -206,12 +213,9 @@ const ShindoCanvasLayer = L.Layer.extend({
 
         this._canvas = L.DomUtil.create('canvas', 'shindo-canvas-layer');
         this._canvas.style.position = 'absolute';
-        this._canvas.style.top = '0';
-        this._canvas.style.left = '0';
         this._canvas.style.pointerEvents = 'none';
-        this._canvas.style.zIndex = 400;
 
-        map.getContainer().appendChild(this._canvas);
+        map.getPane('shindo_canvas').appendChild(this._canvas);
 
         map.on('move zoom viewreset zoomend moveend', this._redraw, this);
         map.on('resize', this._resize, this);
@@ -231,15 +235,24 @@ const ShindoCanvasLayer = L.Layer.extend({
         this._redraw();
     },
 
+    _updateCanvasPosition: function () {
+        const mapPane = this._map.getPane('mapPane');
+        const offset = L.DomUtil.getPosition(mapPane);
+        L.DomUtil.setPosition(this._canvas, L.point(-offset.x, -offset.y));
+    },
+
     _resize: function () {
         const size = this._map.getSize();
         this._canvas.width = size.x;
         this._canvas.height = size.y;
+        this._updateCanvasPosition();
         this._redraw();
     },
 
     _redraw: function () {
         if (!this._map) return;
+
+        this._updateCanvasPosition();
 
         const ctx = this._canvas.getContext('2d');
         ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
@@ -477,7 +490,10 @@ function AreaCodeToName(code) {
 
 function updateMarker(hypoLatLng, hypoIconImage) {
     if (!hypoMarker) {
-        hypoMarker = L.marker(hypoLatLng, { icon: hypoIconImage, pane: "shingen" }).addTo(map);
+        hypoMarker = L.marker(hypoLatLng, { 
+            icon: hypoIconImage, 
+            pane: "shingen" 
+        }).addTo(map);
     } else {
         hypoMarker.setLatLng(hypoLatLng);
     }
@@ -655,7 +671,6 @@ function enableDragScroll(element, options = {}) {
 const scrollable = document.querySelector('.side-panel');
 enableDragScroll(scrollable, { speed: 1 });
 
-// 読み上げ
 const SpeechConfig = {
     enabled: true,
     minScale: 0,
@@ -832,7 +847,7 @@ function updatePSWave() {
     const now = CONFIG.getSimulatedTime();
     const { dateStr, timeStr } = getFormattedTime(now);
 
-    $.getJSON(`https://weather-kyoshin.west.edge.storage-yahoo.jp/RealTimeData/${dateStr}/${timeStr}.json?${now.getTime()}`)
+    $.getJSON(`https://eqf-worker.spdev-3141.workers.dev/api/kyoshin/${dateStr}/${timeStr}.json?t=${now.getTime()}`)
         .done(function(yahoo_data) {
             if (!yahoo_data.psWave || !yahoo_data.hypoInfo?.items?.[0]) {
                 interpolationData.active = false;
@@ -840,6 +855,8 @@ function updatePSWave() {
                 swave.setRadius(0);
                 if (eewHypoMarker) eewHypoMarker.remove();
                 eewHypoMarker = null;
+
+                stopEewBlink();
 
                 if (shindoCanvasLayer) shindoCanvasLayer._canvas.style.display = '';
                 map.getPane('pane_map_filled').style.display = '';
@@ -860,14 +877,29 @@ function updatePSWave() {
 
             const originTime = new Date(hypoItem.originTime);
             const depthMatch = hypoItem.depth.match(/^(\d+)/);
-            const depth = depthMatch ? parseFloat(depthMatch[1]) : 0;
+            const depthVal = depthMatch ? parseFloat(depthMatch[1]) : 0;
+            interpolationData.depth = depthVal; 
+
+            const elapsedSinceOrigin = (now - originTime) / 1000;
+            const pRadiusYahoo = parseFloat(psItem.pRadius);
+            const sRadiusYahoo = parseFloat(psItem.sRadius);
+
+            if (elapsedSinceOrigin > 0) {
+                const adjustedPVelocity = Math.sqrt(pRadiusYahoo * pRadiusYahoo + depthVal * depthVal) / elapsedSinceOrigin;
+                const adjustedSVelocity = Math.sqrt(sRadiusYahoo * sRadiusYahoo + depthVal * depthVal) / elapsedSinceOrigin;
+
+                WAVE_VELOCITY.P = adjustedPVelocity;
+                WAVE_VELOCITY.S = adjustedSVelocity;
+                
+                console.log(`速度補正: P=${adjustedPVelocity.toFixed(2)} km/s, S=${adjustedSVelocity.toFixed(2)} km/s, 深さ=${depthVal}km`);
+            }
 
             interpolationData.active = true;
             interpolationData.hypoCenter = center;
             interpolationData.originTime = originTime;
-            interpolationData.depth = depth;
-            interpolationData.lastPRadius = parseFloat(psItem.pRadius);
-            interpolationData.lastSRadius = parseFloat(psItem.sRadius);
+            interpolationData.depth = depthVal;
+            interpolationData.lastPRadius = pRadiusYahoo;
+            interpolationData.lastSRadius = sRadiusYahoo;
             interpolationData.lastCheckTime = now;
 
             const eewIcon = L.icon({
@@ -875,8 +907,10 @@ function updatePSWave() {
                 iconSize: [40, 40],
                 iconAnchor: [20, 20],
             });
+            
             if (!eewHypoMarker) {
                 eewHypoMarker = L.marker(center, { icon: eewIcon, pane: "eew_shingen" }).addTo(map);
+                startEewBlink();
             } else {
                 eewHypoMarker.setLatLng(center);
             }
@@ -898,7 +932,7 @@ function interpolateAndDraw() {
 
 function drawWaveCircles(now) {
     if (!interpolationData.hypoCenter || !interpolationData.originTime) return;
-
+    
     const elapsedSeconds = (now - interpolationData.originTime) / 1000;
     if (elapsedSeconds < 0) return;
     
@@ -907,23 +941,58 @@ function drawWaveCircles(now) {
     let pRadius = calculateRadius(WAVE_VELOCITY.P, elapsedSeconds, depth);
     let sRadius = calculateRadius(WAVE_VELOCITY.S, elapsedSeconds, depth);
 
+    /*
     if (interpolationData.lastCheckTime) {
-        const timeSinceCheck = (now - interpolationData.lastCheckTime) / 1000;
-        if (timeSinceCheck > 0.8) {
-            const expectedPRadius = calculateRadius(WAVE_VELOCITY.P, elapsedSeconds, depth);
-            const expectedSRadius = calculateRadius(WAVE_VELOCITY.S, elapsedSeconds, depth);
-            
-            const correctionFactor = 0;
-            pRadius = expectedPRadius * (1 - correctionFactor) + interpolationData.lastPRadius * correctionFactor;
-            sRadius = expectedSRadius * (1 - correctionFactor) + interpolationData.lastSRadius * correctionFactor;
-        }
+        const timeSinceYahoo = (now - interpolationData.lastCheckTime);
+        const fadeDuration = 2000;
+
+        const alpha = Math.min(1, timeSinceYahoo / fadeDuration);
+
+        const blendedPRadius = pRadius * (1 - alpha) + interpolationData.lastPRadius * alpha;
+        const blendedSRadius = sRadius * (1 - alpha) + interpolationData.lastSRadius * alpha;
+        
+        pRadius = blendedPRadius;
+        sRadius = blendedSRadius;
     }
+    */
 
     pwave.setLatLng(interpolationData.hypoCenter);
     pwave.setRadius(pRadius * 1000);
     
     swave.setLatLng(interpolationData.hypoCenter);
     swave.setRadius(sRadius * 1000);
+}
+
+function checkDiscrepancy(calculatedRadius, yahooRadius) {
+    const diff = Math.abs(calculatedRadius - yahooRadius);
+    const ratio = diff / yahooRadius;
+    
+    if (ratio > 0.2) {
+        return 0.8;
+    }
+    return 0.2;
+}
+
+function startEewBlink() {
+    if (eewBlinkInterval) return;
+    
+    eewBlinkState = true;
+    eewBlinkInterval = setInterval(() => {
+        eewBlinkState = !eewBlinkState;
+        if (eewHypoMarker) {
+            eewHypoMarker.setOpacity(eewBlinkState ? 1.0 : 0.1);
+        }
+    }, 500);
+}
+
+function stopEewBlink() {
+    if (eewBlinkInterval) {
+        clearInterval(eewBlinkInterval);
+        eewBlinkInterval = null;
+    }
+    if (eewHypoMarker) {
+        eewHypoMarker.setOpacity(1.0);
+    }
 }
 
 setInterval(updatePSWave, 1000);

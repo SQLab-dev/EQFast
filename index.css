@@ -577,3 +577,7 @@ body {
     font-size: 11px;
     color: #aaaaaa;
 }
+
+.leaflet-shingen-pane {
+    z-index: 9999 !important;
+}
