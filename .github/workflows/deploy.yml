@@ -17,6 +17,6 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.DEPLOY_TOKEN }}
         with:
           source-directory: '.'
-          destination-github-username: 'yourname'
-          destination-repository-name: 'myapp'
+          destination-github-username: 'ScProject-Lab'
+          destination-repository-name: 'EQFast'
           target-branch: main
