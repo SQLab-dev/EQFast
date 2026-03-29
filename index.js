@@ -101,6 +101,7 @@ let hypoMarker = null;
 let stationMap = {};
 let japan_data = null;
 let filled_list = {};
+let PROXY = 'https://eqf-kyoshin.spdev-3141.workers.dev/?url=';
 
 const shindoCanvasPane = map.createPane("shindo_canvas");
 shindoCanvasPane.style.zIndex = 200;
@@ -812,4 +813,195 @@ function trySpeakEarthquake({ time, scale, name, magnitude, depth, tsunami, rawS
     });
 })();
 
+async function fetchGifPixels(gifUrl) {
+    const res = await fetch(PROXY + encodeURIComponent(gifUrl));
+    const blob = await res.blob();
+    const bitmap = await createImageBitmap(blob);
 
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+    return ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+}
+
+function getPixel(imageData, x, y) {
+    const i = (y * imageData.width + x) * 4;
+    return {
+        r: imageData.data[i],
+        g: imageData.data[i + 1],
+        b: imageData.data[i + 2],
+    };
+}
+
+async function updateImages(latestTime, points) {
+    const t = new Date(latestTime * 1000);
+    const pad = n => String(n).padStart(2, '0');
+    const yyyymmdd = `${t.getFullYear()}${pad(t.getMonth()+1)}${pad(t.getDate())}`;
+    const ts = yyyymmdd + pad(t.getHours()) + pad(t.getMinutes()) + pad(t.getSeconds());
+
+    const shindoUrl = `http://www.kmoni.bosai.go.jp/data/map_img/RealTimeImg/jma_s/${yyyymmdd}/${ts}.jma_s.gif`;
+    const pgaUrl    = `http://www.kmoni.bosai.go.jp/data/map_img/RealTimeImg/acmap_s/${yyyymmdd}/${ts}.acmap_s.gif`;
+
+    const [shindoData, pgaData] = await Promise.all([
+        fetchGifPixels(shindoUrl),
+        fetchGifPixels(pgaUrl),
+    ]);
+
+    const shindoResult = [], pgaResult = [], colorResult = [];
+
+    for (const { x, y, suspended } of points) {
+        if (suspended || y >= shindoData.height || x >= shindoData.width) {
+            shindoResult.push(7.0);
+            pgaResult.push(9999.9);
+            colorResult.push(null);
+            continue;
+        }
+
+        const sc = getPixel(shindoData, x, y);
+        const pc = getPixel(pgaData, x, y);
+        const sp = color2position(sc.r, sc.g, sc.b);
+        const pp = color2position(pc.r, pc.g, pc.b);
+
+        colorResult.push(`rgb(${sc.r},${sc.g},${sc.b})`);
+
+        if (sp == null || pp == null) {
+            shindoResult.push(7.0); pgaResult.push(9999.9); continue;
+        }
+
+        let shindo = Math.round((10.0 * sp - 3.0) * 10) / 10;
+        let pga    = Math.round((10 ** (5.0 * pp - 2.0)) * 10) / 10;
+
+        if (shindo < -3 || shindo > 7) shindo = 7.0;
+        if (pga < 0 || pga > 9999.9) pga = 99999.9;
+
+        shindoResult.push(shindo);
+        pgaResult.push(pga);
+    }
+
+    return { shindoResult, pgaResult, colorResult };
+}
+
+let latestTime = 0;
+let lastSync = 0;
+let kyoshinPoints = [];
+
+async function fetchLatestTime() {
+    const url = `http://www.kmoni.bosai.go.jp/webservice/server/pros/latest.json?_=${Date.now()}`;
+    const res = await fetch(PROXY + encodeURIComponent(url));
+    const json = await res.json();
+    latestTime = Math.floor(new Date(json.latest_time.replace(/\//g, '-')).getTime() / 1000);
+}
+
+async function initKyoshin() {
+    kyoshinPoints = await loadPoints();
+    await fetchLatestTime();
+    lastSync = latestTime;
+    console.log('[強震モニタ] 初期化完了, points:', kyoshinPoints.length);
+
+    map.on('zoomend', () => {
+        if (window._lastColorResult) {
+            drawKyoshinPoints(kyoshinPoints, window._lastColorResult);
+        }
+    });
+
+    setInterval(async () => {
+        if (latestTime - lastSync > 3600) {
+            await fetchLatestTime();
+            lastSync = latestTime;
+        } else {
+            latestTime += 1;
+        }
+        const { shindoResult, pgaResult, colorResult } = await updateImages(latestTime, kyoshinPoints);
+        window._lastColorResult = colorResult;
+        drawKyoshinPoints(kyoshinPoints, colorResult);
+        console.log('[強震モニタ] 更新:', latestTime, shindoResult.slice(0, 5));
+    }, 1000);
+}
+
+async function loadPoints() {
+    const res = await fetch('./source/point.csv');
+    const text = await res.text();
+    const lines = text.split('\n').slice(1);
+    const points = [];
+    for (const line of lines) {
+        const cols = line.split(',');
+        if (cols.length < 9) continue;
+        const isSuspended = cols[2].trim().toLowerCase() === 'true';
+        const lat = parseFloat(cols[5]);
+        const lon = parseFloat(cols[6]);
+        const x = parseInt(cols[7]);
+        const y = parseInt(cols[8]);
+        if (isNaN(x) || isNaN(y) || isNaN(lat) || isNaN(lon)) continue;
+        points.push({ x, y, suspended: isSuspended, lat, lon });
+    }
+    return points;
+}
+
+function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const v = max, s = max === 0 ? 0 : (max - min) / max;
+    let h = 0;
+    if (max !== min) {
+        if (max === r) h = (g - b) / (max - min) / 6;
+        else if (max === g) h = ((b - r) / (max - min) + 2) / 6;
+        else h = ((r - g) / (max - min) + 4) / 6;
+        if (h < 0) h += 1;
+    }
+    return { h, s, v };
+}
+
+function color2position(r, g, b) {
+    const { h, s, v } = rgbToHsv(r, g, b);
+    if (!(v > 0.05 && s > 0.75)) return null;
+    let p;
+    if (h > 0.1476) {
+        p = 280.31*(h**6) - 916.05*(h**5) + 1142.6*(h**4)
+            - 709.95*(h**3) + 234.65*(h**2) - 40.27*h + 3.2217;
+    } else if (0.001 < h && h <= 0.1476) {
+        p = 151.4*(h**4) - 49.32*(h**3) + 6.753*(h**2) - 2.481*h + 0.9033;
+    } else {
+        p = -0.005171*(v**2) - 0.3282*v + 1.2236;
+    }
+    return Math.max(p, 0);
+}
+
+function drawKyoshinPoints(points, colorResult) {
+    if (!window.kyoshinLayer) {
+        window.kyoshinLayer = L.layerGroup().addTo(map);
+    }
+    window.kyoshinLayer.clearLayers();
+
+    points.forEach(({ lat, lon, suspended }, i) => {
+        if (suspended) return;
+        const color = colorResult[i];
+        if (!color) return;
+
+        const match = color.match(/rgb\((\d+),(\d+),(\d+)\)/);
+        if (!match) return;
+        const [, r, g, b] = match.map(Number);
+        if (r < 10 && g < 10 && b < 10) return;
+
+        L.circleMarker([lat, lon], {
+            radius: getKyoshinRadius(),
+            color: color,
+            fillColor: color,
+            fillOpacity: 1,
+            weight: 0,
+        }).addTo(window.kyoshinLayer);
+    });
+}
+
+function getKyoshinRadius() {
+    const zoom = map.getZoom();
+    if (zoom >= 11) return 18;
+    if (zoom >= 10) return 15;
+    if (zoom >= 8) return 7;
+    if (zoom >= 7) return 5;
+    if (zoom >= 6) return 4;
+    if (zoom >= 4) return 2;
+    if (zoom >= 2) return 1;
+    return 3;
+}
+
+initKyoshin();
