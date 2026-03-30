@@ -205,6 +205,107 @@ body {
     font-weight: 450;
 }
 
+.eew-card {
+    background-color: #1f2737;
+    padding: 12px;
+    border-radius: 20px;
+    margin-top: 12px;
+}
+
+.eew-card[hidden] {
+    display: none;
+}
+
+.eew-card p {
+    margin: 0;
+}
+
+.eew-card_title {
+    font-size: 13px;
+}
+
+.eew-card_status {
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    background-color: #3e506d;
+    text-align: center;
+    padding: 6px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px #00000080;
+    margin: 12px 0;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.eew-card_date {
+    font-size: 13px;
+}
+
+.eew-card_location {
+    font-size: 19px;
+    color: #ccc;
+}
+
+.eew-card_comment {
+    font-size: 13px;
+}
+
+.eew-card_maxscale {
+    margin: 12px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    justify-content: space-between;
+    padding: 0 24px;
+    box-shadow: 0 0 8px #00000080;
+    height: 65px;
+}
+
+.eew-card_maxscale-label {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.eew-card_maxscale-txt {
+    font-size: 40px;
+    font-weight: 500;
+}
+
+.eew-card_hypo-params {
+    background-color: #2a364c;
+    border-radius: 8px;
+    box-shadow: 0 0 8px #0000004b;
+    display: flex;
+    flex-direction: column;
+    padding: 5px 12px;
+    height: 92px;
+    box-sizing: border-box;
+}
+
+.eew-card_hypo-params_label {
+    font-size: 12px;
+}
+
+.eew-card_hypo-params_txt {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 0;
+}
+
+.eew-card_magnitude,
+.eew-card_depth {
+    display: flex;
+    align-items: center;
+    line-height: 1;
+    font-size: 28px;
+    font-weight: 450;
+}
+
 .eq-history {
     margin-top: 12px;
     background-color: #1f2737;
@@ -224,6 +325,18 @@ body {
     margin-top: 12px;
     display: flex;
     gap: 12px;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.eq-history_content:hover {
+    filter: brightness(0.6);
+}
+
+.eq-history_content:focus-visible {
+    outline: 2px solid #7e95c4;
+    outline-offset: 4px;
+    border-radius: 8px;
 }
 
 .eq-history_maxscale {
@@ -292,7 +405,6 @@ body {
     border: none !important;
     border-radius: 8px !important;
     overflow: hidden;
-    box-shadow: 0 0 8px #00000080;
 }
 
 .leaflet-control-zoom a {

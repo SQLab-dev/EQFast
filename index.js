@@ -6,7 +6,7 @@ const CONFIG = {
     get apiurl() {
         return this.isTest
         ? "./source/testNotoEq.json"
-        : "https://eqf-worker.spdev-3141.workers.dev/api/p2pquake?codes=551&limit=15"
+        : "https://eqf-worker.spdev-3141.workers.dev/api/p2pquake?codes=551&limit=40"
     },
 
     get updateInterval() {
@@ -90,6 +90,7 @@ map.createPane("shindo55").style.zIndex = 55;
 map.createPane("shindo60").style.zIndex = 60;
 map.createPane("shindo70").style.zIndex = 70;
 map.createPane("shindo_canvas").style.zIndex = 200;
+map.createPane("wavefront").style.zIndex = 350;
 map.createPane("shingen").style.zIndex = 400;
 map.createPane("tsunami_map").style.zIndex = 110;
 
@@ -101,18 +102,49 @@ let hypoMarker = null;
 let stationMap = {};
 let japan_data = null;
 let filled_list = {};
+let selectedEarthquakeKey = null;
+let lastRenderedEarthquakeKey = null;
 let PROXY = 'https://eqf-kyoshin.spdev-3141.workers.dev/?url=';
 let kyoshinMode = 'shindo'; // 'shindo' or 'pga'
+let jma2001TravelTable = null;
+let waveCurrentEq = null;
+let wavePFrontLayer = null;
+let waveSFrontLayer = null;
+let waveTimerId = null;
+let testModeEewEq = null;
+let testModeEewRaw = null;
+let liveEewEq = null;
+let liveEewRaw = null;
+let eewWs = null;
+let eewReconnectTimer = null;
+
+const WAVE_FRONT_CONFIG = {
+    enabled: true,
+    updateIntervalMs: 20,
+    pColor: '#ffffff',
+    sColor: '#ec211a',
+    pOpacity: 0.85,
+    sOpacity: 0.9,
+    fallbackPVelocityKmS: 6.0,
+    fallbackSVelocityKmS: 3.5,
+    defaultDepthKm: 10,
+    tablePath: 'source/jma2001_travel_time.json',
+};
+
+const EEW_WS_CONFIG = {
+    url: 'wss://ws-api.wolfx.jp/jma_eew',
+    reconnectMs: 5000,
+};
 
 const shindoCanvasPane = map.createPane("shindo_canvas");
 shindoCanvasPane.style.zIndex = 200;
 shindoCanvasPane.style.overflow = 'visible';
 
 const PolygonLayer_Style = {
-    "color": "#dde0e5",
-    "weight": 1.5,
+    "color": "rgb(223, 223, 223)",
+    "weight": 1.8,
     "opacity": 0.25,
-    "fillColor": "#32353a",
+    "fillColor": "#333333",
     "fillOpacity": 1
 };
 
@@ -285,10 +317,17 @@ const iconMap = {
     70: "int7"
 };
 
-Promise.all([preloadIcons(), japanDataReady, loadStationData()])
-    .then(() => {
+Promise.all([preloadIcons(), japanDataReady, loadStationData(), loadJma2001TravelTimeTable(), loadTestModeEewData()])
+    .then(([, , , travelTable, eewData]) => {
+        jma2001TravelTable = travelTable;
+        testModeEewEq = eewData?.eq || null;
+        testModeEewRaw = eewData?.raw || null;
+
         shindoCanvasLayer = new ShindoCanvasLayer();
         shindoCanvasLayer.addTo(map);
+
+        initWaveFrontLayers();
+        initLiveEewStream();
 
         updateData();
         setInterval(updateData, CONFIG.updateInterval);
@@ -323,6 +362,13 @@ document.addEventListener('mousemove', (e) => {
     const walk = y - startY;
     sidePanel.scrollTop = scrollTop - walk;
 });
+
+const latestCard = document.querySelector('.latest-card');
+if (latestCard) {
+    latestCard.addEventListener('click', () => {
+        selectedEarthquakeKey = null;
+    });
+}
 
 function createShindoIcon(scale) {
     const scaleText = scaleMap[String(scale)] || "?";
@@ -364,37 +410,11 @@ function updateData() {
         const detailScaleData = data.filter(eq => eq.issue.type === "DetailScale");
         const latest = detailScaleData[0];
 
-        const { time, hypocenter, maxScale, domesticTsunami } = latest.earthquake;
-        const { name: hyponame, magnitude, depth, latitude, longitude } = hypocenter;
-
-        const hypoLatLng = new L.LatLng(latitude, longitude);
-        const hypoIconImage = L.icon({
-            iconUrl: 'source/shingen.png',
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
-            popupAnchor: [0, -40]
-        });
-        updateMarker(hypoLatLng, hypoIconImage);
-
-        const map_maxscale = scaleMap[String(maxScale)];
-
-        drawShindoPoints(latest.points);
-
-        updateEarthquakeParam(time, map_maxscale, hyponame, magnitude, depth, domesticTsunami);
-
-        trySpeakEarthquake({
-            time,
-            scale:    map_maxscale,
-            name:     hyponame,
-            magnitude,
-            depth,
-            tsunami:  domesticTsunami,
-            rawScale: maxScale,
-        });
+        if (!latest && !testModeEewEq) return;
 
         const eqMap = new Map();
         detailScaleData.forEach(eq => {
-            const key = `${eq.earthquake.time}_${eq.earthquake.hypocenter.name}`;
+            const key = getEarthquakeKey(eq);
             const existing = eqMap.get(key);
             if (!existing || eq.created_at > existing.created_at) {
                 eqMap.set(key, eq);
@@ -404,14 +424,549 @@ function updateData() {
         const deduped = Array.from(eqMap.values())
             .sort((a, b) => b.earthquake.time.localeCompare(a.earthquake.time));
 
-        const latestKey = `${latest.earthquake.time}_${latest.earthquake.hypocenter.name}`;
-        const historyData = deduped.filter(eq => {
-            const key = `${eq.earthquake.time}_${eq.earthquake.hypocenter.name}`;
-            return key !== latestKey;
-        });
+        let displayEq = latest || testModeEewEq || liveEewEq;
+        if (CONFIG.isTest && testModeEewEq) {
+            selectedEarthquakeKey = null;
+            displayEq = testModeEewEq;
+        } else if (!CONFIG.isTest && liveEewEq) {
+            selectedEarthquakeKey = null;
+            displayEq = liveEewEq;
+        } else if (selectedEarthquakeKey) {
+            const selectedEq = deduped.find(eq => getEarthquakeKey(eq) === selectedEarthquakeKey);
+            if (selectedEq) {
+                displayEq = selectedEq;
+            } else {
+                selectedEarthquakeKey = null;
+            }
+        }
+
+        const displayKey = getEarthquakeKey(displayEq);
+        const shouldAutoMove = displayKey !== lastRenderedEarthquakeKey;
+
+        renderEarthquakeOnMap(displayEq, { autoMove: shouldAutoMove });
+        lastRenderedEarthquakeKey = displayKey;
+
+        const latestCardEq = latest || (!CONFIG.isTest ? displayEq : null);
+        if (latestCardEq?.earthquake) {
+            const { time, hypocenter, maxScale, domesticTsunami } = latestCardEq.earthquake;
+            const { name: hyponame, magnitude, depth } = hypocenter;
+
+            const map_maxscale = scaleMap[String(maxScale)];
+
+            updateEarthquakeParam(time, map_maxscale, hyponame, magnitude, depth, domesticTsunami);
+
+            trySpeakEarthquake({
+                time,
+                scale: map_maxscale,
+                name: hyponame,
+                magnitude,
+                depth,
+                tsunami: domesticTsunami,
+                rawScale: maxScale,
+            });
+        }
+
+        updateEewCard(CONFIG.isTest ? testModeEewRaw : liveEewRaw);
+
+        const latestKey = latest ? getEarthquakeKey(latest) : "";
+        const historyData = latest
+            ? deduped.filter(eq => getEarthquakeKey(eq) !== latestKey)
+            : [];
 
         updateEqHistory(historyData);
     });
+}
+
+function loadTestModeEewData() {
+    if (!CONFIG.isTest) return Promise.resolve(null);
+
+    return fetch('./source/testeew.json')
+        .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        })
+        .then((json) => {
+            const eq = convertTestEewToDetailScale(json);
+            const announcedTime = parseJmaDateTime(json?.AnnouncedTime);
+            const simulatedNow = announcedTime || eq?.earthquake?.time;
+
+            if (simulatedNow) {
+                CONFIG.testBaseTime = new Date(simulatedNow);
+                CONFIG._testStartedAt = Date.now();
+            }
+            return { raw: json, eq };
+        })
+        .catch((error) => {
+            console.warn('[test] Failed to load testeew.json', error);
+            return null;
+        });
+}
+
+function initLiveEewStream() {
+    if (CONFIG.isTest || eewWs) return;
+
+    try {
+        eewWs = new WebSocket(EEW_WS_CONFIG.url);
+    } catch (error) {
+        console.warn('[eew] WebSocket initialize failed', error);
+        scheduleLiveEewReconnect();
+        return;
+    }
+
+    eewWs.addEventListener('open', () => {
+        console.log('[eew] connected');
+        if (eewReconnectTimer) {
+            clearTimeout(eewReconnectTimer);
+            eewReconnectTimer = null;
+        }
+    });
+
+    eewWs.addEventListener('message', (event) => {
+        handleLiveEewMessage(event.data);
+    });
+
+    eewWs.addEventListener('close', () => {
+        console.warn('[eew] disconnected');
+        eewWs = null;
+        scheduleLiveEewReconnect();
+    });
+
+    eewWs.addEventListener('error', (error) => {
+        console.warn('[eew] WebSocket error', error);
+    });
+}
+
+function scheduleLiveEewReconnect() {
+    if (CONFIG.isTest || eewReconnectTimer) return;
+
+    eewReconnectTimer = setTimeout(() => {
+        eewReconnectTimer = null;
+        initLiveEewStream();
+    }, EEW_WS_CONFIG.reconnectMs);
+}
+
+function handleLiveEewMessage(payload) {
+    if (!payload) return;
+
+    let data;
+    try {
+        data = typeof payload === 'string' ? JSON.parse(payload) : payload;
+    } catch {
+        return;
+    }
+
+    if (!data || data.type !== 'jma_eew') return;
+
+    liveEewRaw = data;
+
+    if (data.isCancel) {
+        clearLiveEewDisplay();
+        return;
+    }
+
+    const eq = convertTestEewToDetailScale(data);
+    if (!eq) return;
+
+    liveEewEq = eq;
+    renderEarthquakeOnMap(eq, { autoMove: false });
+    updateEewCard(liveEewRaw);
+}
+
+function parseJmaDateTime(value) {
+    if (!value) return null;
+    return value.replace(/\//g, '-').replace(' ', 'T');
+}
+
+function convertIntensityToScaleCode(maxIntensity) {
+    const map = {
+        '1': 10,
+        '2': 20,
+        '3': 30,
+        '4': 40,
+        '5-': 45,
+        '5+': 50,
+        '6-': 55,
+        '6+': 60,
+        '5弱': 45,
+        '5強': 50,
+        '6弱': 55,
+        '6強': 60,
+        '7': 70,
+    };
+
+    const key = String(maxIntensity || '').trim();
+    return map[key] ?? -1;
+}
+
+function convertTestEewToDetailScale(eew) {
+    if (!eew) return null;
+
+    const time = parseJmaDateTime(eew.OriginTime) || new Date().toISOString();
+    const announced = parseJmaDateTime(eew.AnnouncedTime) || time;
+    const magnitude = Number(eew.Magunitude ?? eew.Magnitude ?? eew.magunitude ?? eew.magnitude);
+    const depth = Number(eew.Depth ?? eew.depth);
+    const latitude = Number(eew.Latitude ?? eew.latitude ?? eew.lat);
+    const longitude = Number(eew.Longitude ?? eew.longitude ?? eew.lon);
+
+    return {
+        issue: {
+            type: 'DetailScale',
+        },
+        earthquake: {
+            time,
+            maxScale: convertIntensityToScaleCode(eew.MaxIntensity),
+            domesticTsunami: 'Unknown',
+            hypocenter: {
+                name: eew.Hypocenter || '不明',
+                magnitude,
+                depth,
+                latitude,
+                longitude,
+            },
+        },
+        created_at: announced,
+        points: [],
+    };
+}
+
+function getEarthquakeKey(eq) {
+    if (!eq || !eq.earthquake) return "";
+    return `${eq.earthquake.time}_${eq.earthquake.hypocenter?.name || ""}`;
+}
+
+function getEarthquakeLatLngs(eq) {
+    const latlngs = [];
+
+    if (!eq || !eq.earthquake) return latlngs;
+
+    const { latitude, longitude } = eq.earthquake.hypocenter || {};
+    const hypoLat = Number(latitude);
+    const hypoLon = Number(longitude);
+    if (Number.isFinite(hypoLat) && Number.isFinite(hypoLon)) {
+        latlngs.push(L.latLng(hypoLat, hypoLon));
+    }
+
+    if (!Array.isArray(eq.points)) return latlngs;
+
+    eq.points.forEach((point) => {
+        const station = stationMap[point.addr];
+        if (!station) return;
+
+        const stationLat = Number(station.lat);
+        const stationLon = Number(station.lon);
+        if (!Number.isFinite(stationLat) || !Number.isFinite(stationLon)) return;
+
+        latlngs.push(L.latLng(stationLat, stationLon));
+    });
+
+    return latlngs;
+}
+
+function moveCameraToEarthquake(eq) {
+    const latlngs = getEarthquakeLatLngs(eq);
+    if (latlngs.length === 0) return;
+
+    if (latlngs.length === 1) {
+        map.flyTo(latlngs[0], 8, { animate: true, duration: 0.5 });
+        return;
+    }
+
+    const bounds = L.latLngBounds(latlngs);
+    if (!bounds.isValid()) return;
+
+    map.flyToBounds(bounds, {
+        padding: [60, 60],
+        maxZoom: 8,
+        duration: 0.5,
+    });
+}
+
+function renderEarthquakeOnMap(eq, options = {}) {
+    if (!eq || !eq.earthquake) return;
+    const { autoMove = false } = options;
+
+    const { latitude, longitude } = eq.earthquake.hypocenter || {};
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        const hypoLatLng = new L.LatLng(lat, lon);
+        const hypoIconImage = L.icon({
+            iconUrl: 'source/shingen.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+            popupAnchor: [0, -40]
+        });
+        updateMarker(hypoLatLng, hypoIconImage);
+    }
+
+    drawShindoPoints(eq.points);
+    setWaveFrontEarthquake(eq);
+
+    if (autoMove) {
+        moveCameraToEarthquake(eq);
+    }
+}
+
+async function loadJma2001TravelTimeTable() {
+    try {
+        const response = await fetch(WAVE_FRONT_CONFIG.tablePath);
+        if (!response.ok) {
+            console.warn('[wavefront] JMA2001 table is not available. fallback mode is used.');
+            return null;
+        }
+
+        const json = await response.json();
+        if (!Array.isArray(json.depths) || !Array.isArray(json.distances)
+            || !Array.isArray(json.pTimes) || !Array.isArray(json.sTimes)) {
+            console.warn('[wavefront] Invalid JMA2001 table schema. fallback mode is used.');
+            return null;
+        }
+
+        return json;
+    } catch (error) {
+        console.warn('[wavefront] Failed to load JMA2001 table. fallback mode is used.', error);
+        return null;
+    }
+}
+
+function initWaveFrontLayers() {
+    if (wavePFrontLayer || waveSFrontLayer) return;
+
+    wavePFrontLayer = L.circle([0, 0], {
+        pane: 'wavefront',
+        radius: 0,
+        color: WAVE_FRONT_CONFIG.pColor,
+        weight: 2,
+        opacity: 0,
+        fillOpacity: 0,
+    }).addTo(map);
+
+    waveSFrontLayer = L.circle([0, 0], {
+        pane: 'wavefront',
+        radius: 0,
+        color: WAVE_FRONT_CONFIG.sColor,
+        weight: 2.5,
+        opacity: 0,
+        fillOpacity: 0,
+    }).addTo(map);
+}
+
+function setWaveFrontEarthquake(eq) {
+    if (!WAVE_FRONT_CONFIG.enabled || !eq || !eq.earthquake) return;
+
+    initWaveFrontLayers();
+    waveCurrentEq = eq;
+    updateWaveFronts(Date.now());
+
+    if (waveTimerId != null) return;
+
+    waveTimerId = setInterval(() => {
+        updateWaveFronts(Date.now());
+    }, WAVE_FRONT_CONFIG.updateIntervalMs);
+}
+
+function updateWaveFronts(nowMs) {
+    if (!waveCurrentEq || !waveCurrentEq.earthquake || !wavePFrontLayer || !waveSFrontLayer) return;
+
+    const { hypocenter } = waveCurrentEq.earthquake;
+    const lat = Number(hypocenter?.latitude);
+    const lon = Number(hypocenter?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        hideWaveFrontLayers();
+        return;
+    }
+
+    const originMs = getEarthquakeOriginMillis(waveCurrentEq);
+    if (!Number.isFinite(originMs)) {
+        hideWaveFrontLayers();
+        return;
+    }
+
+    const nowForWaveMs = CONFIG.isTest ? CONFIG.getSimulatedTime().getTime() : nowMs;
+    const elapsedSec = Math.max(0, (nowForWaveMs - originMs) / 1000);
+    const depthKm = parseDepthKm(hypocenter?.depth);
+
+    const pDistanceKm = getDistanceForElapsedSec('p', depthKm, elapsedSec);
+    const sDistanceKm = getDistanceForElapsedSec('s', depthKm, elapsedSec);
+
+    if (isPWaveMaxReached(pDistanceKm) && isCurrentEewFinalReport()) {
+        clearLiveEewDisplay();
+        return;
+    }
+
+    const center = L.latLng(lat, lon);
+    wavePFrontLayer.setLatLng(center);
+    waveSFrontLayer.setLatLng(center);
+
+    applyWaveFrontRadius(wavePFrontLayer, pDistanceKm, WAVE_FRONT_CONFIG.pOpacity);
+    applyWaveFrontRadius(waveSFrontLayer, sDistanceKm, WAVE_FRONT_CONFIG.sOpacity);
+}
+
+function applyWaveFrontRadius(layer, distanceKm, opacity) {
+    if (!Number.isFinite(distanceKm) || distanceKm <= 0) {
+        layer.setRadius(0);
+        layer.setStyle({ opacity: 0 });
+        return;
+    }
+
+    layer.setRadius(distanceKm * 1000);
+    layer.setStyle({ opacity });
+}
+
+function hideWaveFrontLayers() {
+    if (!wavePFrontLayer || !waveSFrontLayer) return;
+    wavePFrontLayer.setRadius(0);
+    waveSFrontLayer.setRadius(0);
+    wavePFrontLayer.setStyle({ opacity: 0 });
+    waveSFrontLayer.setStyle({ opacity: 0 });
+}
+
+function isPWaveMaxReached(pDistanceKm) {
+    if (!jma2001TravelTable || !Array.isArray(jma2001TravelTable.distances)) return false;
+    const distances = jma2001TravelTable.distances;
+    if (distances.length === 0) return false;
+
+    const maxDistanceKm = Number(distances[distances.length - 1]);
+    if (!Number.isFinite(maxDistanceKm)) return false;
+
+    const marginKm = 1;
+    return Number.isFinite(pDistanceKm) && pDistanceKm >= maxDistanceKm - marginKm;
+}
+
+function isCurrentEewFinalReport() {
+    const currentEew = CONFIG.isTest ? testModeEewRaw : liveEewRaw;
+    return !!(currentEew && currentEew.isFinal);
+}
+
+function clearLiveEewDisplay() {
+    liveEewEq = null;
+    liveEewRaw = null;
+    testModeEewEq = null;
+    testModeEewRaw = null;
+    waveCurrentEq = null;
+    hideWaveFrontLayers();
+    updateEewCard(null);
+}
+
+function getEarthquakeOriginMillis(eq) {
+    const time = eq?.earthquake?.time;
+    if (!time) return NaN;
+    return Date.parse(time);
+}
+
+function parseDepthKm(depthRaw) {
+    const depth = Number(depthRaw);
+    if (Number.isFinite(depth) && depth >= 0) return depth;
+    return WAVE_FRONT_CONFIG.defaultDepthKm;
+}
+
+function getDistanceForElapsedSec(waveType, depthKm, elapsedSec) {
+    if (jma2001TravelTable) {
+        const distanceFromTable = invertTravelTimeToDistance(jma2001TravelTable, waveType, depthKm, elapsedSec);
+        if (Number.isFinite(distanceFromTable)) {
+            return distanceFromTable;
+        }
+    }
+
+    return getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec);
+}
+
+function getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec) {
+    const velocity = waveType === 'p'
+        ? WAVE_FRONT_CONFIG.fallbackPVelocityKmS
+        : WAVE_FRONT_CONFIG.fallbackSVelocityKmS;
+
+    const hypocentralDistance = velocity * elapsedSec;
+    if (!Number.isFinite(hypocentralDistance) || hypocentralDistance <= depthKm) {
+        return null;
+    }
+
+    const epicentralSquared = hypocentralDistance ** 2 - depthKm ** 2;
+    if (epicentralSquared <= 0) return null;
+
+    return Math.sqrt(epicentralSquared);
+}
+
+function invertTravelTimeToDistance(table, waveType, depthKm, elapsedSec) {
+    if (!table || !Number.isFinite(elapsedSec) || elapsedSec < 0) return null;
+
+    const distances = table.distances;
+    if (!Array.isArray(distances) || distances.length < 2) return null;
+
+    const minDist = distances[0];
+    const maxDist = distances[distances.length - 1];
+    const tMin = getTravelTimeAtDistance(table, waveType, depthKm, minDist);
+    const tMax = getTravelTimeAtDistance(table, waveType, depthKm, maxDist);
+    if (!Number.isFinite(tMin) || !Number.isFinite(tMax)) return null;
+    if (elapsedSec < tMin) return null;
+    if (elapsedSec >= tMax) return null;
+
+    let left = minDist;
+    let right = maxDist;
+
+    for (let i = 0; i < 26; i += 1) {
+        const mid = (left + right) / 2;
+        const tMid = getTravelTimeAtDistance(table, waveType, depthKm, mid);
+        if (!Number.isFinite(tMid)) return null;
+
+        if (tMid < elapsedSec) {
+            left = mid;
+        } else {
+            right = mid;
+        }
+    }
+
+    return (left + right) / 2;
+}
+
+function getTravelTimeAtDistance(table, waveType, depthKm, distanceKm) {
+    const timeMatrix = waveType === 'p' ? table.pTimes : table.sTimes;
+    const depthBracket = findBracket(table.depths, depthKm);
+    const distanceBracket = findBracket(table.distances, distanceKm);
+
+    if (!depthBracket || !distanceBracket) return null;
+
+    const { i0: d0, i1: d1, ratio: dr } = depthBracket;
+    const { i0: x0, i1: x1, ratio: xr } = distanceBracket;
+
+    const t00 = Number(timeMatrix?.[d0]?.[x0]);
+    const t01 = Number(timeMatrix?.[d0]?.[x1]);
+    const t10 = Number(timeMatrix?.[d1]?.[x0]);
+    const t11 = Number(timeMatrix?.[d1]?.[x1]);
+
+    if (![t00, t01, t10, t11].every(Number.isFinite)) return null;
+
+    const top = t00 + (t01 - t00) * xr;
+    const bottom = t10 + (t11 - t10) * xr;
+    return top + (bottom - top) * dr;
+}
+
+function findBracket(sortedArray, value) {
+    if (!Array.isArray(sortedArray) || sortedArray.length === 0 || !Number.isFinite(value)) return null;
+
+    if (value <= sortedArray[0]) {
+        return { i0: 0, i1: 0, ratio: 0 };
+    }
+
+    const lastIndex = sortedArray.length - 1;
+    if (value >= sortedArray[lastIndex]) {
+        return { i0: lastIndex, i1: lastIndex, ratio: 0 };
+    }
+
+    for (let i = 0; i < lastIndex; i += 1) {
+        const left = Number(sortedArray[i]);
+        const right = Number(sortedArray[i + 1]);
+        if (!Number.isFinite(left) || !Number.isFinite(right)) continue;
+
+        if (left <= value && value <= right) {
+            const range = right - left;
+            const ratio = range === 0 ? 0 : (value - left) / range;
+            return { i0: i, i1: i + 1, ratio };
+        }
+    }
+
+    return null;
 }
 
 function drawShindoPoints(points) {
@@ -419,7 +974,12 @@ function drawShindoPoints(points) {
 
     const canvasPoints = [];
     filled_list = {};
-    shindoFilledLayer.clearLayers()
+    shindoFilledLayer.clearLayers();
+
+    if (!Array.isArray(points)) {
+        shindoCanvasLayer.setPoints(canvasPoints);
+        return;
+    }
 
     points.forEach(element => {
         const station = stationMap[element.addr];
@@ -581,6 +1141,53 @@ function updateEarthquakeParam(time, scale, name, magnitude, depth, tsunami) {
     if (tsunamiClassMap[tsunami]) tsunami_class.classList.add(tsunamiClassMap[tsunami]);
 }
 
+function updateEewCard(eew) {
+    const card = document.getElementById('eew-card');
+    if (!card) return;
+
+    if (!eew || eew.isCancel) {
+        card.hidden = true;
+        return;
+    }
+
+    card.hidden = false;
+
+    const issueTypeFromTitle = String(eew.Title || '').match(/（([^）]+)）/)?.[1];
+    const issueType = issueTypeFromTitle || (eew.isWarn ? '警報' : '予報');
+    const issueSuffix = eew.isFinal ? '最終' : `第${String(eew.Serial || '?')}報`;
+
+    const origin = parseJmaDateTime(eew.OriginTime);
+    const date = origin ? new Date(origin) : new Date();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    const eewScaleCode = convertIntensityToScaleCode(eew.MaxIntensity);
+    const eewScaleText = scaleMap[String(eewScaleCode)] || String(eew.MaxIntensity || '不明');
+    const eewBgClass = scaleClassMap[eewScaleText] || '';
+    const match = eewScaleText.match(/^(\d)([^\d]*)$/);
+    const number = match ? match[1] : eewScaleText;
+    const modifier = match ? match[2] : '';
+
+    const maxScale = card.querySelector('.eew-card_maxscale');
+    Object.values(scaleClassMap).forEach(cls => maxScale.classList.remove(cls));
+    if (eewBgClass) maxScale.classList.add(eewBgClass);
+
+    card.querySelector('.eew-card_status').textContent = `緊急地震速報 (${issueType}) - ${issueSuffix}`;
+    card.querySelector('.eew-card_date').textContent = `${month}/${day} ${hours}:${minutes}ごろ発生`;
+    card.querySelector('.eew-card_location').textContent = eew.Hypocenter || '不明';
+    card.querySelector('.eew-card_comment').textContent = 'で地震';
+    card.querySelector('.eew-card_maxscale-txt').innerHTML = `${number}<span class="scale_modifier">${modifier}</span>`;
+
+    const mag = Number(eew.Magunitude);
+    const depth = Number(eew.Depth);
+    card.querySelector('.eew-card_magnitude').textContent = Number.isFinite(mag) ? mag.toFixed(1) : '調査中';
+    card.querySelector('.eew-card_depth').textContent = Number.isFinite(depth)
+        ? (depth === 0 ? 'ごく浅い' : `${depth}km`)
+        : '調査中';
+}
+
 function updateEqHistory(eqData) {
     const container = document.getElementById("eq-history-list");
     container.innerHTML = "";
@@ -614,7 +1221,7 @@ function updateEqHistory(eqData) {
         const darkTextClass = (scaleNumber === "3" || scaleNumber === "4") ? "dark-text" : "";
 
         const html = `
-            <div class="eq-history_content">
+            <div class="eq-history_content" tabindex="0" role="button" aria-label="過去の地震を地図に表示">
                 <div class="eq-history_maxscale ${bgClass} ${darkTextClass}">
                     <p>${scaleNumber}<span class="scale_modifier">${scaleModifier}</span></p>
                 </div>
@@ -629,6 +1236,24 @@ function updateEqHistory(eqData) {
                 </div>
             `;
         container.insertAdjacentHTML("beforeend", html);
+
+        const card = container.lastElementChild;
+        if (!card) return;
+
+        card.addEventListener("click", () => {
+            selectedEarthquakeKey = getEarthquakeKey(eq);
+            renderEarthquakeOnMap(eq, { autoMove: true });
+            lastRenderedEarthquakeKey = selectedEarthquakeKey;
+        });
+
+        card.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                selectedEarthquakeKey = getEarthquakeKey(eq);
+                renderEarthquakeOnMap(eq, { autoMove: true });
+                lastRenderedEarthquakeKey = selectedEarthquakeKey;
+            }
+        });
     });
 }
 
@@ -1045,14 +1670,31 @@ function drawKyoshinPoints(points, colorResult) {
         const [, r, g, b] = match.map(Number);
         if (r < 10 && g < 10 && b < 10) return;
 
+        const fillOpacity = getKyoshinOpacity(r, g, b);
+
         L.circleMarker([lat, lon], {
             radius: getKyoshinRadius(),
             color: color,
             fillColor: color,
-            fillOpacity: 1,
+            fillOpacity,
             weight: 0,
         }).addTo(window.kyoshinLayer);
     });
+}
+
+function getKyoshinOpacity(r, g, b) {
+    if (kyoshinMode !== 'shindo') return 0.2;
+
+    const pos = color2position(r, g, b);
+    if (pos == null) return 0.55;
+
+    let shindo = 10.0 * pos - 3.0;
+    if (!Number.isFinite(shindo)) return 0.55;
+
+    shindo = Math.max(-3, Math.min(7, shindo));
+    const normalized = (shindo + 3) / 10;
+
+    return 0.00 + normalized * 1.5;
 }
 
 function getKyoshinRadius() {
