@@ -209,7 +209,6 @@ body {
     background-color: #1f2737;
     padding: 12px;
     border-radius: 20px;
-    margin-top: 12px;
 }
 
 .eew-card[hidden] {
@@ -220,10 +219,6 @@ body {
     margin: 0;
 }
 
-.eew-card_title {
-    font-size: 13px;
-}
-
 .eew-card_status {
     font-size: 13px;
     letter-spacing: 0.02em;
@@ -232,7 +227,8 @@ body {
     padding: 6px;
     border-radius: 8px;
     box-shadow: 0 0 8px #00000080;
-    margin: 12px 0;
+    margin-top: 0;
+    margin-bottom: 12px;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
