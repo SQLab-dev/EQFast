@@ -584,3 +584,47 @@ body {
 .leaflet-shingen-pane {
     z-index: 9999 !important;
 }
+
+.kyoshin-settings {
+    margin-top: 12px;
+    background-color: #1f2737;
+    padding: 12px;
+    border-radius: 20px;
+}
+
+.kyoshin-settings p {
+    margin: 0;
+}
+
+.kyoshin-settings_title {
+    font-size: 13px;
+    color: #fff;
+}
+
+.kyoshin-mode-btns {
+    display: flex;
+    gap: 4px;
+}
+
+.kyoshin-mode-btn {
+    background-color: #2a364c;
+    border: none;
+    border-radius: 8px;
+    color: #aaaaaa;
+    font-family: 'Jost', 'Noto Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.kyoshin-mode-btn:hover {
+    background-color: #3a3f4b;
+    color: #ffffff;
+}
+
+.kyoshin-mode-btn.active {
+    background-color: #3e506d;
+    color: #ffffff;
+}

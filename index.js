@@ -102,6 +102,7 @@ let stationMap = {};
 let japan_data = null;
 let filled_list = {};
 let PROXY = 'https://eqf-kyoshin.spdev-3141.workers.dev/?url=';
+let kyoshinMode = 'shindo'; // 'shindo' or 'pga'
 
 const shindoCanvasPane = map.createPane("shindo_canvas");
 shindoCanvasPane.style.zIndex = 200;
@@ -847,13 +848,14 @@ async function updateImages(latestTime, points) {
         fetchGifPixels(pgaUrl),
     ]);
 
-    const shindoResult = [], pgaResult = [], colorResult = [];
+    const shindoResult = [], pgaResult = [], colorResult = [], pgaColorResult = [];
 
     for (const { x, y, suspended } of points) {
         if (suspended || y >= shindoData.height || x >= shindoData.width) {
             shindoResult.push(7.0);
             pgaResult.push(9999.9);
             colorResult.push(null);
+            pgaColorResult.push(null);
             continue;
         }
 
@@ -863,6 +865,7 @@ async function updateImages(latestTime, points) {
         const pp = color2position(pc.r, pc.g, pc.b);
 
         colorResult.push(`rgb(${sc.r},${sc.g},${sc.b})`);
+        pgaColorResult.push(`rgb(${pc.r},${pc.g},${pc.b})`)
 
         if (sp == null || pp == null) {
             shindoResult.push(7.0); pgaResult.push(9999.9); continue;
@@ -878,7 +881,7 @@ async function updateImages(latestTime, points) {
         pgaResult.push(pga);
     }
 
-    return { shindoResult, pgaResult, colorResult };
+    return { shindoResult, pgaResult, colorResult, pgaColorResult };
 }
 
 let latestTime = 0;
@@ -900,7 +903,27 @@ async function initKyoshin() {
 
     map.on('zoomend', () => {
         if (window._lastColorResult) {
+            drawKyoshinPoints(kyoshinPoints, kyoshinMode === 'shindo'
+                ? window._lastColorResult
+                : window._lastPgaColorResult);
+        }
+    });
+
+    document.getElementById('kyoshin-shindo-btn').addEventListener('click', () => {
+        kyoshinMode = 'shindo';
+        document.getElementById('kyoshin-shindo-btn').classList.add('active');
+        document.getElementById('kyoshin-pga-btn').classList.remove('active');
+        if (window._lastColorResult) {
             drawKyoshinPoints(kyoshinPoints, window._lastColorResult);
+        }
+    });
+
+    document.getElementById('kyoshin-pga-btn').addEventListener('click', () => {
+        kyoshinMode = 'pga';
+        document.getElementById('kyoshin-pga-btn').classList.add('active');
+        document.getElementById('kyoshin-shindo-btn').classList.remove('active');
+        if (window._lastPgaColorResult) {
+            drawKyoshinPoints(kyoshinPoints, window._lastPgaColorResult);
         }
     });
 
@@ -911,9 +934,10 @@ async function initKyoshin() {
         } else {
             latestTime += 1;
         }
-        const { shindoResult, pgaResult, colorResult } = await updateImages(latestTime, kyoshinPoints);
-        window._lastColorResult = colorResult;
-        drawKyoshinPoints(kyoshinPoints, colorResult);
+    const { shindoResult, pgaResult, colorResult, pgaColorResult } = await updateImages(latestTime, kyoshinPoints);
+    window._lastColorResult = colorResult;
+    window._lastPgaColorResult = pgaColorResult;
+    drawKyoshinPoints(kyoshinPoints, kyoshinMode === 'shindo' ? colorResult : pgaColorResult);
         console.log('[強震モニタ] 更新:', latestTime, shindoResult.slice(0, 5));
     }, 1000);
 }
@@ -998,7 +1022,7 @@ function getKyoshinRadius() {
     if (zoom >= 10) return 15;
     if (zoom >= 8) return 7;
     if (zoom >= 7) return 5;
-    if (zoom >= 6) return 4;
+    if (zoom >= 6) return 3;
     if (zoom >= 4) return 2;
     if (zoom >= 2) return 1;
     return 3;
