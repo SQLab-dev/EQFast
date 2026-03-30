@@ -709,52 +709,37 @@ function speak(text) {
     window.speechSynthesis.speak(utter);
 }
 
-function buildSpeechText(time, scale, name, magnitude, depth, tsunami) {
-    const d = new Date(time);
-    const month   = d.getMonth() + 1;
-    const day     = d.getDate();
-    const hours   = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-
-    const magText = Number(magnitude) === -1
-        ? "不明"
-        : `${magnitude.toFixed(1)}`;
-
-    const depthNum  = Number(depth);
-    const depthText = depthNum === -1 ? "不明"
-                    : depthNum === 0  ? "ごく浅い"
-                    : `${depthNum}キロメートル`;
-
-    const tsunamiVoiceMap = {
-        "None":        "この地震による津波の心配はありません。",
-        "Unknown":     "現在、津波に関する情報を調査中です。",
-        "Checking":    "現在、津波に関する情報を調査中です。",
-        "NonEffective":"若干の海面変動があるかもしれませんが、被害の心配はありません。",
-        "Watch":       "この地震によって、津波注意報が発表されています。",
-        "Warning":     "この地震によって、津波予報等を発表中です。",
-    };
-    const tsunamiText = tsunamiVoiceMap[tsunami] ?? "津波情報は不明です。";
-
+function buildSpeechText(scale) {
     return [
-        `地震情報。`,
-        `${month}月${day}日 ${hours}時${minutes}分ごろ、`,
-        `${name}で地震がありました。`,
-        `最大震度は${scale}、`,
-        `震源の深さは${depthText}。`,
-        `地震の規模を示すマグニチュードは、${magText} 、と推定されています。`,
-        `また、${tsunamiText}`,
+        `最大震度${scale}の地震が発生しました。`,
     ].join("");
 }
 
-function trySpeakEarthquake({ time, scale, name, magnitude, depth, tsunami, rawScale }) {
+function trySpeakEarthquake({ time, scale, name, rawScale }) {
     if (speechCooldown) return;
     const key = `${time}_${name}`;
     if (key === lastSpokenKey) return;
     if (Number(rawScale) < SpeechConfig.minScale) return;
 
     lastSpokenKey = key;
-    const text = buildSpeechText(time, scale, name, magnitude, depth, tsunami);
+    playAlertSound();
+    const text = buildSpeechText(scale);
     speak(text);
+}
+
+const SoundConfig = {
+    enabled: true,
+    src: './source/eq.mp3',
+    volume: 0.8,
+};
+
+const alertAudio = new Audio(SoundConfig.src);
+alertAudio.volume = SoundConfig.volume;
+
+function playAlertSound() {
+    if (!SoundConfig.enabled || !userInteracted) return;
+    alertAudio.currentTime = 0;
+    alertAudio.play().catch(e => console.warn('効果音の再生失敗:', e));
 }
 
 (function () {
@@ -811,6 +796,60 @@ function trySpeakEarthquake({ time, scale, name, magnitude, depth, tsunami, rawS
         };
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(utter);
+    });
+})();
+
+(function () {
+    const toggle    = document.getElementById('sound-enabled-toggle');
+    const detail    = document.getElementById('sound-detail');
+    const volumeEl  = document.getElementById('sound-volume');
+    const volumeLbl = document.getElementById('sound-volume-label');
+    const testBtn   = document.getElementById('sound-test-btn');
+    const dot       = document.getElementById('sound-status-dot');
+    const statusTxt = document.getElementById('sound-status-text');
+
+    toggle.checked = SoundConfig.enabled;
+    detail.classList.toggle('visible', SoundConfig.enabled);
+
+    toggle.addEventListener('change', () => {
+        SoundConfig.enabled = toggle.checked;
+        detail.classList.toggle('visible', toggle.checked);
+        if (toggle.checked) userInteracted = true;
+    });
+
+    volumeEl.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    volumeEl.addEventListener('input', () => {
+        const v = parseFloat(volumeEl.value);
+        SoundConfig.volume = v;
+        alertAudio.volume = v;
+        volumeLbl.textContent = `${Math.round(v * 100)}%`;
+    });
+
+    testBtn.addEventListener('click', () => {
+        userInteracted = true;
+        testBtn.disabled = true;
+        testBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> 再生中…`;
+        dot.className = 'voice-status-dot busy';
+        statusTxt.textContent = '再生中…';
+
+        const audio = new Audio(SoundConfig.src);
+        audio.volume = SoundConfig.volume;
+        audio.play()
+            .then(() => {
+                audio.onended = () => {
+                    dot.className = 'voice-status-dot ok';
+                    statusTxt.textContent = '正常';
+                    testBtn.disabled = false;
+                    testBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> テスト再生`;
+                };
+            })
+            .catch(() => {
+                dot.className = 'voice-status-dot err';
+                statusTxt.textContent = 'エラー（ファイル未設置？）';
+                testBtn.disabled = false;
+                testBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> テスト再生`;
+            });
     });
 })();
 

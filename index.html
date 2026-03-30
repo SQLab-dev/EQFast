@@ -50,7 +50,7 @@
                 <p class="voice-settings_title">音声読み上げ</p>
 
                 <div class="voice-toggle-row">
-                    <span class="voice-toggle-label">読み上げ</span>
+                    <span class="voice-toggle-label">読み上げを有効にする</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="voice-enabled-toggle">
                         <span class="toggle-slider"></span>
@@ -82,6 +82,40 @@
                             <svg viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M8 5v14l11-7z"/>
                             </svg>
+                            テスト再生
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="voice-settings">
+                <p class="voice-settings_title">効果音</p>
+
+                <div class="voice-toggle-row">
+                    <span class="voice-toggle-label">効果音を有効にする</span>
+                    <label class="toggle-switch">
+                    <input type="checkbox" id="sound-enabled-toggle" checked>
+                    <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="voice-detail" id="sound-detail">
+                    <div class="voice-divider"></div>
+
+                    <div class="voice-param-row">
+                        <span class="voice-param-label">音量</span>
+                        <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="0.8"
+                            style="flex:1; accent-color:#3e506d; margin: 0 8px;">
+                        <span id="sound-volume-label" class="voice-param-label">80%</span>
+                    </div>
+
+                    <div class="voice-param-row" style="margin-top:5pzx; justify-content:space-between;">
+                        <div class="voice-status">
+                            <span class="voice-status-dot" id="sound-status-dot"></span>
+                            <span class="voice-status-text" id="sound-status-text">待機中</span>
+                        </div>
+                        <button class="voice-test-btn" id="sound-test-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                             テスト再生
                         </button>
                     </div>
