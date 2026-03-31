@@ -1,4 +1,4 @@
-//=====
+﻿//=====
 // 設定
 const CONFIG = {
     isTest: new URLSearchParams(window.location.search).has("test"),
@@ -1625,6 +1625,7 @@ function trySpeakEarthquake({ time, scale, name, rawScale }) {
 
 const SoundConfig = {
     enabled: true,
+    earthquakeEnabled: true,
     src: './assets/audio/eq.mp3',
     volume: 0.8,
 };
@@ -1642,7 +1643,7 @@ const eewAudio = new Audio(EewSoundConfig.src);
 eewAudio.volume = EewSoundConfig.volume;
 
 function playAlertSound() {
-    if (!SoundConfig.enabled || !userInteracted) return;
+    if (!SoundConfig.enabled || !SoundConfig.earthquakeEnabled || !userInteracted) return;
     alertAudio.currentTime = 0;
     alertAudio.play().catch(e => console.warn('効果音の再生失敗:', e));
 }
@@ -1715,17 +1716,73 @@ function playEewSound() {
     const detail    = document.getElementById('sound-detail');
     const volumeEl  = document.getElementById('sound-volume');
     const volumeLbl = document.getElementById('sound-volume-label');
-    const testBtn   = document.getElementById('sound-test-btn');
+    const eqToggle  = document.getElementById('sound-earthquake-toggle');
+    const eewToggle = document.getElementById('sound-eew-toggle');
+    const eqTestBtn = document.getElementById('sound-earthquake-test-btn');
+    const eewTestBtn = document.getElementById('sound-eew-test-btn');
     const dot       = document.getElementById('sound-status-dot');
     const statusTxt = document.getElementById('sound-status-text');
+    const testButtons = [eqTestBtn, eewTestBtn];
+
+    function setTestButtonsDisabled(disabled) {
+        testButtons.forEach((button) => {
+            if (button) button.disabled = disabled;
+        });
+    }
+
+    function setButtonLabel(button, label) {
+        if (!button) return;
+        button.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${label}`;
+    }
+
+    function runSoundTest({ src, volume, activeButton }) {
+        userInteracted = true;
+        setTestButtonsDisabled(true);
+        setButtonLabel(activeButton, '再生中...');
+        dot.className = 'voice-status-dot busy';
+        statusTxt.textContent = '再生中…';
+
+        const audio = new Audio(src);
+        audio.volume = volume;
+
+        return audio.play()
+            .then(() => new Promise((resolve) => {
+                audio.onended = resolve;
+            }))
+            .then(() => {
+                dot.className = 'voice-status-dot ok';
+                statusTxt.textContent = '正常';
+            })
+            .catch(() => {
+                dot.className = 'voice-status-dot err';
+                statusTxt.textContent = 'エラー（ファイル未設置？）';
+            })
+            .finally(() => {
+                setTestButtonsDisabled(false);
+                setButtonLabel(eqTestBtn, '再生');
+                setButtonLabel(eewTestBtn, '再生');
+            });
+    }
 
     toggle.checked = SoundConfig.enabled;
+    eqToggle.checked = SoundConfig.earthquakeEnabled;
+    eewToggle.checked = EewSoundConfig.enabled;
     detail.classList.toggle('visible', SoundConfig.enabled);
 
     toggle.addEventListener('change', () => {
         SoundConfig.enabled = toggle.checked;
         detail.classList.toggle('visible', toggle.checked);
         if (toggle.checked) userInteracted = true;
+    });
+
+    eqToggle.addEventListener('change', () => {
+        SoundConfig.earthquakeEnabled = eqToggle.checked;
+        if (eqToggle.checked) userInteracted = true;
+    });
+
+    eewToggle.addEventListener('change', () => {
+        EewSoundConfig.enabled = eewToggle.checked;
+        if (eewToggle.checked) userInteracted = true;
     });
 
     volumeEl.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -1737,30 +1794,12 @@ function playEewSound() {
         volumeLbl.textContent = `${Math.round(v * 100)}%`;
     });
 
-    testBtn.addEventListener('click', () => {
-        userInteracted = true;
-        testBtn.disabled = true;
-        testBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> 再生中…`;
-        dot.className = 'voice-status-dot busy';
-        statusTxt.textContent = '再生中…';
+    eqTestBtn.addEventListener('click', () => {
+        runSoundTest({ src: SoundConfig.src, volume: SoundConfig.volume, activeButton: eqTestBtn });
+    });
 
-        const audio = new Audio(SoundConfig.src);
-        audio.volume = SoundConfig.volume;
-        audio.play()
-            .then(() => {
-                audio.onended = () => {
-                    dot.className = 'voice-status-dot ok';
-                    statusTxt.textContent = '正常';
-                    testBtn.disabled = false;
-                    testBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> テスト再生`;
-                };
-            })
-            .catch(() => {
-                dot.className = 'voice-status-dot err';
-                statusTxt.textContent = 'エラー（ファイル未設置？）';
-                testBtn.disabled = false;
-                testBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> テスト再生`;
-            });
+    eewTestBtn.addEventListener('click', () => {
+        runSoundTest({ src: EewSoundConfig.src, volume: EewSoundConfig.volume, activeButton: eewTestBtn });
     });
 })();
 
@@ -1996,3 +2035,5 @@ function getKyoshinRadius() {
 }
 
 initKyoshin();
+
+

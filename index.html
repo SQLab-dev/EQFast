@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
     <title>EQFast</title>
@@ -130,15 +130,39 @@
                         <span id="sound-volume-label" class="voice-param-label">80%</span>
                     </div>
 
-                    <div class="voice-param-row" style="margin-top:5pzx; justify-content:space-between;">
+                    <div class="sound-setting-item">
+                        <span class="voice-param-label sound-setting-label">地震情報受信時</span>
+                        <div class="sound-setting-actions">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sound-earthquake-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <button class="voice-test-btn voice-test-btn-inline" id="sound-earthquake-test-btn">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                再生
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="sound-setting-item">
+                        <span class="voice-param-label sound-setting-label">緊急地震速報受信時</span>
+                        <div class="sound-setting-actions">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sound-eew-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <button class="voice-test-btn voice-test-btn-inline" id="sound-eew-test-btn">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                再生
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="voice-param-row" style="margin-top:8px; justify-content:flex-start;">
                         <div class="voice-status">
                             <span class="voice-status-dot" id="sound-status-dot"></span>
                             <span class="voice-status-text" id="sound-status-text">待機中</span>
                         </div>
-                        <button class="voice-test-btn" id="sound-test-btn">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                            テスト再生
-                        </button>
                     </div>
                 </div>
             </div>
@@ -166,3 +190,5 @@
         <script src="assets/js/app.js"></script>
     </body>
 </html>
+
+

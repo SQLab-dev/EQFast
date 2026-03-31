@@ -571,7 +571,7 @@ body {
 }
 
 .voice-detail.visible {
-    max-height: 200px;
+    max-height: 320px;
     opacity: 1;
 }
 
@@ -655,6 +655,34 @@ body {
     width: 12px;
     height: 12px;
     flex-shrink: 0;
+}
+
+.voice-test-btn-inline {
+    padding: 4px 8px;
+}
+
+.sound-setting-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 10px;
+}
+
+.sound-setting-item + .sound-setting-item {
+    margin-top: 10px;
+}
+
+.sound-setting-label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.sound-setting-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 .voice-status {
