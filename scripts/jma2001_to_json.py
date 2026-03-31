@@ -156,7 +156,7 @@ def main() -> None:
         "-o",
         "--output",
         type=Path,
-        default=Path("source/jma2001_travel_time.json"),
+        default=Path("data/json/jma2001_travel_time.json"),
         help="Output JSON file path",
     )
     parser.add_argument(

@@ -58,11 +58,11 @@ body {
 }
 
 .four-bg {
-    background-color: #c27b2b;
+    background-color: #df8e32;
 }
 
 .three-bg {
-    background-color: #e2b63e;
+    background-color: #daa30d;
 }
 
 .two-bg {
@@ -89,7 +89,7 @@ body {
 }
 
 .tsunami-watch {
-    background-color: #e2b63e !important;
+    background-color: #f3b50b !important;
     color: #000;
 }
 
@@ -428,7 +428,7 @@ body {
     text-align: center;
     font-size: 16px;
     text-decoration: none;
-    background-image: url('./source/reset.png') !important;
+    background-image: url('../images/reset.png') !important;
     background-size: 35px 35px;
     background-position: center;
     background-repeat: no-repeat;
@@ -675,7 +675,7 @@ body {
 .voice-status-dot.ok   { background-color: #008369; }
 .voice-status-dot.err  { background-color: #a11717; }
 .voice-status-dot.busy {
-    background-color: #e2b63e;
+    background-color: #d6ad3a;
     animation: voice-dot-pulse 1s infinite;
 }
 

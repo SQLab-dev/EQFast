@@ -5,7 +5,7 @@ const CONFIG = {
 
     get apiurl() {
         return this.isTest
-        ? "./source/testNotoEq.json"
+        ? "./data/json/testNotoEq.json"
         : "https://eqf-worker.spdev-3141.workers.dev/api/p2pquake?codes=551&limit=40"
     },
 
@@ -38,7 +38,10 @@ if (CONFIG.isTest) {
     toggleBtn.textContent = 'テストモード';
 }
 
-document.querySelector('.side-panel').appendChild(toggleBtn);
+const sidePanelElement = document.querySelector('.side-panel');
+if (sidePanelElement) {
+    sidePanelElement.appendChild(toggleBtn);
+}
 
 var map = L.map('map', {
     scrollWheelZoom: false,
@@ -117,6 +120,11 @@ let liveEewEq = null;
 let liveEewRaw = null;
 let eewWs = null;
 let eewReconnectTimer = null;
+let latestUpdateRequestId = 0;
+let latestAppliedUpdateRequestId = 0;
+let lastPlayedEewFirstReportKey = null;
+const WAVE_SVG_NS = 'http://www.w3.org/2000/svg';
+const WAVE_S_GRADIENT_ID = 'wavefront-s-radial-gradient';
 
 const WAVE_FRONT_CONFIG = {
     enabled: true,
@@ -125,15 +133,23 @@ const WAVE_FRONT_CONFIG = {
     sColor: '#ec211a',
     pOpacity: 0.85,
     sOpacity: 0.9,
+    sFillOpacity: 0.35,
     fallbackPVelocityKmS: 6.0,
     fallbackSVelocityKmS: 3.5,
+    postMaxPVelocityKmS: 7.0,
+    postMaxSVelocityKmS: 4.0,
     defaultDepthKm: 10,
-    tablePath: 'source/jma2001_travel_time.json',
+    tablePath: 'data/json/jma2001_travel_time.json',
 };
 
 const EEW_WS_CONFIG = {
     url: 'wss://ws-api.wolfx.jp/jma_eew',
     reconnectMs: 5000,
+};
+
+const EEW_HTTP_CONFIG = {
+    snapshotUrl: 'https://api.wolfx.jp/jma_eew.json',
+    finalHideAfterMs: 5 * 60 * 1000,
 };
 
 const shindoCanvasPane = map.createPane("shindo_canvas");
@@ -151,18 +167,18 @@ const PolygonLayer_Style = {
 const shindoFillColorMap = {
     10: "#007a9c",   // 1
     20: "#008369",   // 2
-    30: "#d1a11b",   // 3
+    30: "#b98a08",   // 3
     40: "#c27b2b",   // 4
-    45: "#c22b2b",   // 5弱
+    45: "#b11515",   // 5弱
     46: "#db4921",   // 5弱以上
-    50: "#a11717",   // 5強
-    55: "#8f0d34",   // 6弱
+    50: "#920b0b",   // 5強
+    55: "#920b4a",   // 6弱
     60: "#80142f",   // 6強
     70: "#4a0083",   // 7
 };
 
 const japanDataReady = new Promise((resolve, reject) => {
-    $.getJSON("source/saibun.geojson")
+    $.getJSON("data/geo/saibun.geojson")
         .done((data) => {
             japan_data = data;
             L.geoJson(data, {
@@ -172,7 +188,7 @@ const japanDataReady = new Promise((resolve, reject) => {
             resolve(data);
         })
         .fail((_, textStatus, errorThrown) => {
-            console.error("Failed to load source/saibun.geojson:", textStatus, errorThrown);
+            console.error("Failed to load data/geo/saibun.geojson:", textStatus, errorThrown);
             reject(errorThrown || new Error(textStatus));
         });
 });
@@ -211,7 +227,7 @@ function preloadIcons() {
     return Promise.all(iconNames.map(name => {
         return new Promise((resolve) => {
             const img = new Image();
-            img.src = `./source/point_icons/_${name}.png`;
+            img.src = `./assets/images/point_icons/_${name}.png`;
             img.onload = () => {
                 iconCache[name] = img;
                 resolve();
@@ -222,7 +238,7 @@ function preloadIcons() {
 
 function loadStationData() {
     return new Promise((resolve, reject) => {
-        $.getJSON("source/JMAstations.json")
+        $.getJSON("data/json/JMAstations.json")
             .done((data) => {
                 JMAPointsJson = data;
                 stationMap = {};
@@ -230,7 +246,7 @@ function loadStationData() {
                 resolve(data);
             })
             .fail((_, textStatus, errorThrown) => {
-                console.error("Failed to load source/JMAstations.json:", textStatus, errorThrown);
+                console.error("Failed to load data/json/JMAstations.json:", textStatus, errorThrown);
                 reject(errorThrown || new Error(textStatus));
             });
     });
@@ -318,10 +334,14 @@ const iconMap = {
 };
 
 Promise.all([preloadIcons(), japanDataReady, loadStationData(), loadJma2001TravelTimeTable(), loadTestModeEewData()])
-    .then(([, , , travelTable, eewData]) => {
+    .then(async ([, , , travelTable, eewData]) => {
         jma2001TravelTable = travelTable;
         testModeEewEq = eewData?.eq || null;
         testModeEewRaw = eewData?.raw || null;
+
+        if (!CONFIG.isTest) {
+            await loadInitialLiveEewSnapshot();
+        }
 
         shindoCanvasLayer = new ShindoCanvasLayer();
         shindoCanvasLayer.addTo(map);
@@ -331,37 +351,15 @@ Promise.all([preloadIcons(), japanDataReady, loadStationData(), loadJma2001Trave
 
         updateData();
         setInterval(updateData, CONFIG.updateInterval);
+
+        if (CONFIG.isTest) {
+            initSamplePointShindo();
+        }
+
     })
     .catch((error) => {
         console.error("Initial map data load failed:", error);
     });
-
-const sidePanel = document.querySelector('.side-panel');
-let isDown = false;
-let startY;
-let scrollTop;
-
-sidePanel.addEventListener('mousedown', (e) => {
-    isDown = true;
-    startY = e.pageY - sidePanel.offsetTop;
-    scrollTop = sidePanel.scrollTop;
-    sidePanel.style.cursor = 'grabbing';
-    sidePanel.style.userSelect = 'none';
-});
-
-document.addEventListener('mouseup', () => {
-    isDown = false;
-    sidePanel.style.cursor = 'grab';
-    sidePanel.style.userSelect = '';
-});
-
-document.addEventListener('mousemove', (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const y = e.pageY - sidePanel.offsetTop;
-    const walk = y - startY;
-    sidePanel.scrollTop = scrollTop - walk;
-});
 
 const latestCard = document.querySelector('.latest-card');
 if (latestCard) {
@@ -406,81 +404,96 @@ function createShindoIcon(scale) {
 }
 
 function updateData() {
-    $.getJSON(CONFIG.apiurl, (data) => {
-        const detailScaleData = data.filter(eq => eq.issue.type === "DetailScale");
-        const latest = detailScaleData[0];
+    const requestId = ++latestUpdateRequestId;
 
-        if (!latest && !testModeEewEq) return;
+    $.getJSON(CONFIG.apiurl)
+        .done((data) => {
+            if (requestId < latestAppliedUpdateRequestId) return;
+            latestAppliedUpdateRequestId = requestId;
 
-        const eqMap = new Map();
-        detailScaleData.forEach(eq => {
-            const key = getEarthquakeKey(eq);
-            const existing = eqMap.get(key);
-            if (!existing || eq.created_at > existing.created_at) {
-                eqMap.set(key, eq);
+            try {
+                const detailScaleData = Array.isArray(data)
+                    ? data.filter(eq => eq?.issue?.type === "DetailScale")
+                    : [];
+                const latest = detailScaleData[0];
+
+                if (!latest && !testModeEewEq) return;
+
+                const eqMap = new Map();
+                detailScaleData.forEach(eq => {
+                    const key = getEarthquakeKey(eq);
+                    const existing = eqMap.get(key);
+                    if (!existing || eq.created_at > existing.created_at) {
+                        eqMap.set(key, eq);
+                    }
+                });
+
+                const deduped = Array.from(eqMap.values())
+                    .sort((a, b) => b.earthquake.time.localeCompare(a.earthquake.time));
+
+                let displayEq = latest || testModeEewEq || liveEewEq;
+                if (CONFIG.isTest && testModeEewEq) {
+                    selectedEarthquakeKey = null;
+                    displayEq = testModeEewEq;
+                } else if (!CONFIG.isTest && liveEewEq) {
+                    selectedEarthquakeKey = null;
+                    displayEq = liveEewEq;
+                } else if (selectedEarthquakeKey) {
+                    const selectedEq = deduped.find(eq => getEarthquakeKey(eq) === selectedEarthquakeKey);
+                    if (selectedEq) {
+                        displayEq = selectedEq;
+                    } else {
+                        selectedEarthquakeKey = null;
+                    }
+                }
+
+                const displayKey = getEarthquakeKey(displayEq);
+                const shouldAutoMove = displayKey !== lastRenderedEarthquakeKey;
+
+                renderEarthquakeOnMap(displayEq, { autoMove: shouldAutoMove });
+                lastRenderedEarthquakeKey = displayKey;
+
+                const latestCardEq = latest || (!CONFIG.isTest ? displayEq : null);
+                if (latestCardEq?.earthquake) {
+                    const { time, hypocenter, maxScale, domesticTsunami } = latestCardEq.earthquake;
+                    const { name: hyponame, magnitude, depth } = hypocenter;
+
+                    const map_maxscale = scaleMap[String(maxScale)];
+
+                    updateEarthquakeParam(time, map_maxscale, hyponame, magnitude, depth, domesticTsunami);
+
+                    trySpeakEarthquake({
+                        time,
+                        scale: map_maxscale,
+                        name: hyponame,
+                        magnitude,
+                        depth,
+                        tsunami: domesticTsunami,
+                        rawScale: maxScale,
+                    });
+                }
+
+                updateEewCard(CONFIG.isTest ? testModeEewRaw : liveEewRaw);
+
+                const latestKey = latest ? getEarthquakeKey(latest) : "";
+                const historyData = latest
+                    ? deduped.filter(eq => getEarthquakeKey(eq) !== latestKey)
+                    : [];
+
+                updateEqHistory(historyData);
+            } catch (error) {
+                console.error('[updateData] Failed to render earthquake data', error);
             }
+        })
+        .fail((_, textStatus, errorThrown) => {
+            console.warn('[updateData] Failed to fetch earthquake data', textStatus, errorThrown);
         });
-
-        const deduped = Array.from(eqMap.values())
-            .sort((a, b) => b.earthquake.time.localeCompare(a.earthquake.time));
-
-        let displayEq = latest || testModeEewEq || liveEewEq;
-        if (CONFIG.isTest && testModeEewEq) {
-            selectedEarthquakeKey = null;
-            displayEq = testModeEewEq;
-        } else if (!CONFIG.isTest && liveEewEq) {
-            selectedEarthquakeKey = null;
-            displayEq = liveEewEq;
-        } else if (selectedEarthquakeKey) {
-            const selectedEq = deduped.find(eq => getEarthquakeKey(eq) === selectedEarthquakeKey);
-            if (selectedEq) {
-                displayEq = selectedEq;
-            } else {
-                selectedEarthquakeKey = null;
-            }
-        }
-
-        const displayKey = getEarthquakeKey(displayEq);
-        const shouldAutoMove = displayKey !== lastRenderedEarthquakeKey;
-
-        renderEarthquakeOnMap(displayEq, { autoMove: shouldAutoMove });
-        lastRenderedEarthquakeKey = displayKey;
-
-        const latestCardEq = latest || (!CONFIG.isTest ? displayEq : null);
-        if (latestCardEq?.earthquake) {
-            const { time, hypocenter, maxScale, domesticTsunami } = latestCardEq.earthquake;
-            const { name: hyponame, magnitude, depth } = hypocenter;
-
-            const map_maxscale = scaleMap[String(maxScale)];
-
-            updateEarthquakeParam(time, map_maxscale, hyponame, magnitude, depth, domesticTsunami);
-
-            trySpeakEarthquake({
-                time,
-                scale: map_maxscale,
-                name: hyponame,
-                magnitude,
-                depth,
-                tsunami: domesticTsunami,
-                rawScale: maxScale,
-            });
-        }
-
-        updateEewCard(CONFIG.isTest ? testModeEewRaw : liveEewRaw);
-
-        const latestKey = latest ? getEarthquakeKey(latest) : "";
-        const historyData = latest
-            ? deduped.filter(eq => getEarthquakeKey(eq) !== latestKey)
-            : [];
-
-        updateEqHistory(historyData);
-    });
 }
 
 function loadTestModeEewData() {
     if (!CONFIG.isTest) return Promise.resolve(null);
 
-    return fetch('./source/testeew.json')
+    return fetch('./data/json/testeew.json')
         .then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
@@ -497,7 +510,7 @@ function loadTestModeEewData() {
             return { raw: json, eq };
         })
         .catch((error) => {
-            console.warn('[test] Failed to load testeew.json', error);
+            console.warn('[test] Failed to load data/json/testeew.json', error);
             return null;
         });
 }
@@ -570,11 +583,94 @@ function handleLiveEewMessage(payload) {
     liveEewEq = eq;
     renderEarthquakeOnMap(eq, { autoMove: false });
     updateEewCard(liveEewRaw);
+    playEewSoundForFirstReport(data);
+}
+
+function isFirstEewReport(eew) {
+    return Number(eew?.Serial) === 1;
+}
+
+function getEewFirstReportPlayKey(eew) {
+    return [
+        eew?.EventID,
+        eew?.OriginTime,
+        eew?.AnnouncedTime,
+        eew?.Hypocenter,
+    ].filter(Boolean).join('|');
+}
+
+function playEewSoundForFirstReport(eew) {
+    if (!isFirstEewReport(eew)) return;
+
+    const key = getEewFirstReportPlayKey(eew);
+    if (key && key === lastPlayedEewFirstReportKey) return;
+
+    lastPlayedEewFirstReportKey = key || String(Date.now());
+    playEewSound();
 }
 
 function parseJmaDateTime(value) {
     if (!value) return null;
     return value.replace(/\//g, '-').replace(' ', 'T');
+}
+
+function getEewAnnouncedMillis(eew) {
+    if (!eew) return NaN;
+
+    const announced = parseJmaDateTime(eew.AnnouncedTime);
+    if (announced) {
+        const announcedMs = Date.parse(announced);
+        if (Number.isFinite(announcedMs)) return announcedMs;
+    }
+
+    const origin = parseJmaDateTime(eew.OriginTime);
+    if (origin) {
+        const originMs = Date.parse(origin);
+        if (Number.isFinite(originMs)) return originMs;
+    }
+
+    return NaN;
+}
+
+function isFinalReportExpired(eew, nowMs = Date.now()) {
+    if (!eew?.isFinal) return false;
+
+    const announcedMs = getEewAnnouncedMillis(eew);
+    if (!Number.isFinite(announcedMs)) return false;
+    return nowMs - announcedMs >= EEW_HTTP_CONFIG.finalHideAfterMs;
+}
+
+async function loadInitialLiveEewSnapshot() {
+    try {
+        const response = await fetch(EEW_HTTP_CONFIG.snapshotUrl, { cache: 'no-store' });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (!data || data.type !== 'jma_eew' || data.isCancel) {
+            clearLiveEewDisplay();
+            return;
+        }
+
+        if (isFinalReportExpired(data)) {
+            clearLiveEewDisplay();
+            return;
+        }
+
+        liveEewRaw = data;
+        const eq = convertTestEewToDetailScale(data);
+        if (!eq) return;
+
+        liveEewEq = eq;
+        renderEarthquakeOnMap(eq, { autoMove: false });
+        updateEewCard(liveEewRaw);
+
+        // 最終報から5分以内のスナップショットはページ表示時に通知音を鳴らす。
+        if (data.isFinal) {
+            playEewSound();
+        }
+    } catch (error) {
+        console.warn('[eew] Initial snapshot load failed', error);
+    }
 }
 
 function convertIntensityToScaleCode(maxIntensity) {
@@ -585,6 +681,7 @@ function convertIntensityToScaleCode(maxIntensity) {
         '4': 40,
         '5-': 45,
         '5+': 50,
+        '5弱以上': 46,
         '6-': 55,
         '6+': 60,
         '5弱': 45,
@@ -626,7 +723,31 @@ function convertTestEewToDetailScale(eew) {
         },
         created_at: announced,
         points: [],
+        areaScales: convertWarnAreaToAreaScales(eew.WarnArea),
     };
+}
+
+function convertWarnAreaToAreaScales(warnArea) {
+    if (!Array.isArray(warnArea)) return [];
+
+    const areaScaleMap = {};
+
+    warnArea.forEach((area) => {
+        const areaName = String(area?.Chiiki || '').trim();
+        if (!areaName) return;
+
+        const areaCode = AreaNameToCode(areaName);
+        if (!areaCode) return;
+
+        const scale = convertIntensityToScaleCode(area?.Shindo1);
+        if (!Number.isFinite(scale) || scale < 0) return;
+
+        if (!areaScaleMap[areaCode] || areaScaleMap[areaCode] < scale) {
+            areaScaleMap[areaCode] = scale;
+        }
+    });
+
+    return Object.entries(areaScaleMap).map(([areaCode, scale]) => ({ areaCode, scale }));
 }
 
 function getEarthquakeKey(eq) {
@@ -692,7 +813,7 @@ function renderEarthquakeOnMap(eq, options = {}) {
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
         const hypoLatLng = new L.LatLng(lat, lon);
         const hypoIconImage = L.icon({
-            iconUrl: 'source/shingen.png',
+            iconUrl: 'assets/images/shingen.png',
             iconSize: [40, 40],
             iconAnchor: [20, 20],
             popupAnchor: [0, -40]
@@ -700,12 +821,31 @@ function renderEarthquakeOnMap(eq, options = {}) {
         updateMarker(hypoLatLng, hypoIconImage);
     }
 
-    drawShindoPoints(eq.points);
-    setWaveFrontEarthquake(eq);
+    drawShindoPoints(eq.points, eq.areaScales);
+    if (shouldRenderWaveFrontForEq(eq)) {
+        setWaveFrontEarthquake(eq);
+    } else {
+        waveCurrentEq = null;
+        hideWaveFrontLayers();
+    }
 
     if (autoMove) {
         moveCameraToEarthquake(eq);
     }
+}
+
+function getActiveEewEq() {
+    return CONFIG.isTest ? testModeEewEq : liveEewEq;
+}
+
+function getActiveEewRaw() {
+    return CONFIG.isTest ? testModeEewRaw : liveEewRaw;
+}
+
+function shouldRenderWaveFrontForEq(eq) {
+    const activeEewEq = getActiveEewEq();
+    if (!activeEewEq || !eq) return false;
+    return getEarthquakeKey(activeEewEq) === getEarthquakeKey(eq);
 }
 
 async function loadJma2001TravelTimeTable() {
@@ -746,10 +886,61 @@ function initWaveFrontLayers() {
         pane: 'wavefront',
         radius: 0,
         color: WAVE_FRONT_CONFIG.sColor,
+        fillColor: `url(#${WAVE_S_GRADIENT_ID})`,
         weight: 2.5,
         opacity: 0,
         fillOpacity: 0,
     }).addTo(map);
+
+    ensureSWaveGradientDef();
+    waveSFrontLayer.bringToFront();
+}
+
+function ensureSWaveGradientDef() {
+    if (!waveSFrontLayer) return;
+
+    const pathElement = typeof waveSFrontLayer.getElement === 'function'
+        ? waveSFrontLayer.getElement()
+        : waveSFrontLayer._path;
+    const svg = pathElement ? pathElement.ownerSVGElement : null;
+    if (!svg) return;
+
+    let defs = svg.querySelector('defs');
+    if (!defs) {
+        defs = document.createElementNS(WAVE_SVG_NS, 'defs');
+        svg.insertBefore(defs, svg.firstChild);
+    }
+
+    let gradient = defs.querySelector(`#${WAVE_S_GRADIENT_ID}`);
+    if (!gradient) {
+        gradient = document.createElementNS(WAVE_SVG_NS, 'radialGradient');
+        gradient.setAttribute('id', WAVE_S_GRADIENT_ID);
+        gradient.setAttribute('cx', '50%');
+        gradient.setAttribute('cy', '50%');
+        gradient.setAttribute('r', '50%');
+
+        const stopCenter = document.createElementNS(WAVE_SVG_NS, 'stop');
+        stopCenter.setAttribute('offset', '0%');
+        stopCenter.setAttribute('stop-opacity', '0');
+
+        const stopMiddle = document.createElementNS(WAVE_SVG_NS, 'stop');
+        stopMiddle.setAttribute('offset', '45%');
+        stopMiddle.setAttribute('stop-opacity', '0.25');
+
+        const stopEdge = document.createElementNS(WAVE_SVG_NS, 'stop');
+        stopEdge.setAttribute('offset', '100%');
+        stopEdge.setAttribute('stop-opacity', '1');
+
+        gradient.appendChild(stopCenter);
+        gradient.appendChild(stopMiddle);
+        gradient.appendChild(stopEdge);
+        defs.appendChild(gradient);
+    }
+
+    const stops = gradient.querySelectorAll('stop');
+    for (const stop of stops) {
+        stop.setAttribute('stop-color', WAVE_FRONT_CONFIG.sColor);
+    }
 }
 
 function setWaveFrontEarthquake(eq) {
@@ -787,39 +978,47 @@ function updateWaveFronts(nowMs) {
     const elapsedSec = Math.max(0, (nowForWaveMs - originMs) / 1000);
     const depthKm = parseDepthKm(hypocenter?.depth);
 
-    const pDistanceKm = getDistanceForElapsedSec('p', depthKm, elapsedSec);
-    const sDistanceKm = getDistanceForElapsedSec('s', depthKm, elapsedSec);
-
-    if (isPWaveMaxReached(pDistanceKm) && isCurrentEewFinalReport()) {
+    const activeEewRaw = getActiveEewRaw();
+    const isFinalReport = !!(activeEewRaw && activeEewRaw.isFinal);
+    if (isFinalReport && isFinalReportExpired(activeEewRaw, nowForWaveMs)) {
         clearLiveEewDisplay();
         return;
+    }
+
+    let pDistanceKm = getDistanceForElapsedSec('p', depthKm, elapsedSec);
+    let sDistanceKm = getDistanceForElapsedSec('s', depthKm, elapsedSec);
+    const isPMaxReached = isPWaveMaxReached(pDistanceKm);
+
+    if (isPMaxReached) {
+        pDistanceKm = getDistanceAfterPWaveMax('p', depthKm, elapsedSec, pDistanceKm);
+        sDistanceKm = getDistanceAfterPWaveMax('s', depthKm, elapsedSec, sDistanceKm);
     }
 
     const center = L.latLng(lat, lon);
     wavePFrontLayer.setLatLng(center);
     waveSFrontLayer.setLatLng(center);
 
-    applyWaveFrontRadius(wavePFrontLayer, pDistanceKm, WAVE_FRONT_CONFIG.pOpacity);
-    applyWaveFrontRadius(waveSFrontLayer, sDistanceKm, WAVE_FRONT_CONFIG.sOpacity);
+    applyWaveFrontRadius(wavePFrontLayer, pDistanceKm, WAVE_FRONT_CONFIG.pOpacity, 0);
+    applyWaveFrontRadius(waveSFrontLayer, sDistanceKm, WAVE_FRONT_CONFIG.sOpacity, WAVE_FRONT_CONFIG.sFillOpacity);
 }
 
-function applyWaveFrontRadius(layer, distanceKm, opacity) {
+function applyWaveFrontRadius(layer, distanceKm, opacity, fillOpacity = 0) {
     if (!Number.isFinite(distanceKm) || distanceKm <= 0) {
         layer.setRadius(0);
-        layer.setStyle({ opacity: 0 });
+        layer.setStyle({ opacity: 0, fillOpacity: 0 });
         return;
     }
 
     layer.setRadius(distanceKm * 1000);
-    layer.setStyle({ opacity });
+    layer.setStyle({ opacity, fillOpacity });
 }
 
 function hideWaveFrontLayers() {
     if (!wavePFrontLayer || !waveSFrontLayer) return;
     wavePFrontLayer.setRadius(0);
     waveSFrontLayer.setRadius(0);
-    wavePFrontLayer.setStyle({ opacity: 0 });
-    waveSFrontLayer.setStyle({ opacity: 0 });
+    wavePFrontLayer.setStyle({ opacity: 0, fillOpacity: 0 });
+    waveSFrontLayer.setStyle({ opacity: 0, fillOpacity: 0 });
 }
 
 function isPWaveMaxReached(pDistanceKm) {
@@ -832,11 +1031,6 @@ function isPWaveMaxReached(pDistanceKm) {
 
     const marginKm = 1;
     return Number.isFinite(pDistanceKm) && pDistanceKm >= maxDistanceKm - marginKm;
-}
-
-function isCurrentEewFinalReport() {
-    const currentEew = CONFIG.isTest ? testModeEewRaw : liveEewRaw;
-    return !!(currentEew && currentEew.isFinal);
 }
 
 function clearLiveEewDisplay() {
@@ -870,6 +1064,40 @@ function getDistanceForElapsedSec(waveType, depthKm, elapsedSec) {
     }
 
     return getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec);
+}
+
+function getDistanceAfterPWaveMax(waveType, depthKm, elapsedSec, currentDistanceKm) {
+    const maxInfo = getWaveMaxDistanceInfo(waveType, depthKm);
+    if (!maxInfo) {
+        return Number.isFinite(currentDistanceKm)
+            ? currentDistanceKm
+            : getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec);
+    }
+
+    if (elapsedSec <= maxInfo.maxTravelSec) {
+        return Number.isFinite(currentDistanceKm) ? currentDistanceKm : maxInfo.maxDistanceKm;
+    }
+
+    const velocity = waveType === 'p'
+        ? WAVE_FRONT_CONFIG.postMaxPVelocityKmS
+        : WAVE_FRONT_CONFIG.postMaxSVelocityKmS;
+    const extraSec = elapsedSec - maxInfo.maxTravelSec;
+    return maxInfo.maxDistanceKm + velocity * extraSec;
+}
+
+function getWaveMaxDistanceInfo(waveType, depthKm) {
+    if (!jma2001TravelTable || !Array.isArray(jma2001TravelTable.distances)) return null;
+
+    const distances = jma2001TravelTable.distances;
+    if (distances.length === 0) return null;
+
+    const maxDistanceKm = Number(distances[distances.length - 1]);
+    if (!Number.isFinite(maxDistanceKm)) return null;
+
+    const maxTravelSec = getTravelTimeAtDistance(jma2001TravelTable, waveType, depthKm, maxDistanceKm);
+    if (!Number.isFinite(maxTravelSec)) return null;
+
+    return { maxDistanceKm, maxTravelSec };
 }
 
 function getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec) {
@@ -969,38 +1197,51 @@ function findBracket(sortedArray, value) {
     return null;
 }
 
-function drawShindoPoints(points) {
+function drawShindoPoints(points, areaScales = []) {
     if (!JMAPointsJson || !japan_data || !shindoCanvasLayer) return;
 
     const canvasPoints = [];
     filled_list = {};
     shindoFilledLayer.clearLayers();
 
-    if (!Array.isArray(points)) {
-        shindoCanvasLayer.setPoints(canvasPoints);
-        return;
+    if (Array.isArray(points)) {
+        points.forEach(element => {
+            const station = stationMap[element.addr];
+            if (!station) return;
+
+            const stationLat = Number(station.lat);
+            const stationLon = Number(station.lon);
+            if (!Number.isFinite(stationLat) || !Number.isFinite(stationLon)) return;
+
+            const scale = element.scale;
+            const iconName = iconMap[scale] || "int_";
+
+            canvasPoints.push({
+                latlng: L.latLng(stationLat, stationLon),
+                iconName: iconName,
+                scale: scale
+            });
+
+            if (station.area?.name) {
+                const areaCode = AreaNameToCode(station.area.name);
+                if (areaCode != null && (!filled_list[areaCode] || filled_list[areaCode] < scale)) {
+                    filled_list[areaCode] = scale;
+                }
+            }
+        });
     }
 
-    points.forEach(element => {
-        const station = stationMap[element.addr];
-        if (!station) return;
+    if (Array.isArray(areaScales)) {
+        areaScales.forEach((item) => {
+            const areaCode = item?.areaCode;
+            const scale = Number(item?.scale);
+            if (!areaCode || !Number.isFinite(scale) || scale < 0) return;
 
-        const scale = element.scale;
-        const iconName = iconMap[scale] || "int_";
-
-        canvasPoints.push({
-            latlng: L.latLng(Number(station.lat), Number(station.lon)),
-            iconName: iconName,
-            scale: scale
-        });
-
-        if (station.area?.name) {
-            const areaCode = AreaNameToCode(station.area.name);
-            if (areaCode != null && (!filled_list[areaCode] || filled_list[areaCode] < scale)) {
+            if (!filled_list[areaCode] || filled_list[areaCode] < scale) {
                 filled_list[areaCode] = scale;
             }
-        }
-    });
+        });
+    }
 
     canvasPoints.sort((a, b) => a.scale - b.scale);
 
@@ -1240,18 +1481,18 @@ function updateEqHistory(eqData) {
         const card = container.lastElementChild;
         if (!card) return;
 
-        card.addEventListener("click", () => {
+        const selectHistoryEarthquake = () => {
             selectedEarthquakeKey = getEarthquakeKey(eq);
             renderEarthquakeOnMap(eq, { autoMove: true });
             lastRenderedEarthquakeKey = selectedEarthquakeKey;
-        });
+        };
+
+        card.addEventListener("click", selectHistoryEarthquake);
 
         card.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                selectedEarthquakeKey = getEarthquakeKey(eq);
-                renderEarthquakeOnMap(eq, { autoMove: true });
-                lastRenderedEarthquakeKey = selectedEarthquakeKey;
+                selectHistoryEarthquake();
             }
         });
     });
@@ -1259,15 +1500,21 @@ function updateEqHistory(eqData) {
 
 function enableDragScroll(element, options = {}) {
     let isDown = false;
+    let dragMoved = false;
+    let suppressClick = false;
     let startX, startY, scrollLeft, scrollTop;
     const speed = options.speed || 1;
+    const dragThreshold = options.dragThreshold || 6;
 
     element.style.cursor = 'grab';
 
     element.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
         isDown = true;
+        dragMoved = false;
         element.classList.add('active');
         element.style.cursor = 'grabbing';
+        element.style.userSelect = 'none';
         startX = e.pageX - element.offsetLeft;
         startY = e.pageY - element.offsetTop;
         scrollLeft = element.scrollLeft;
@@ -1275,15 +1522,24 @@ function enableDragScroll(element, options = {}) {
     });
 
     element.addEventListener('mouseup', () => {
+        if (!isDown) return;
         isDown = false;
+        if (dragMoved) {
+            suppressClick = true;
+            setTimeout(() => {
+                suppressClick = false;
+            }, 0);
+        }
         element.classList.remove('active');
         element.style.cursor = 'grab';
+        element.style.userSelect = '';
     });
 
     element.addEventListener('mouseleave', () => {
         isDown = false;
         element.classList.remove('active');
         element.style.cursor = 'grab';
+        element.style.userSelect = '';
     });
 
     element.addEventListener('mousemove', (e) => {
@@ -1291,13 +1547,28 @@ function enableDragScroll(element, options = {}) {
         e.preventDefault();
         const x = e.pageX - element.offsetLeft;
         const y = e.pageY - element.offsetTop;
+        if (!dragMoved) {
+            const movedX = Math.abs(x - startX);
+            const movedY = Math.abs(y - startY);
+            if (movedX >= dragThreshold || movedY >= dragThreshold) {
+                dragMoved = true;
+            }
+        }
         element.scrollLeft = scrollLeft - (x - startX) * speed;
         element.scrollTop  = scrollTop  - (y - startY) * speed;
     });
+
+    element.addEventListener('click', (e) => {
+        if (!suppressClick) return;
+        e.preventDefault();
+        e.stopPropagation();
+    }, true);
 }
 
 const scrollable = document.querySelector('.side-panel');
-enableDragScroll(scrollable, { speed: 1 });
+if (scrollable) {
+    enableDragScroll(scrollable, { speed: 1 });
+}
 
 const SpeechConfig = {
     enabled: true,
@@ -1354,17 +1625,32 @@ function trySpeakEarthquake({ time, scale, name, rawScale }) {
 
 const SoundConfig = {
     enabled: true,
-    src: './source/eq.mp3',
+    src: './assets/audio/eq.mp3',
     volume: 0.8,
+};
+
+const EewSoundConfig = {
+    enabled: true,
+    src: './assets/audio/eew.mp3',
+    volume: 0.9,
 };
 
 const alertAudio = new Audio(SoundConfig.src);
 alertAudio.volume = SoundConfig.volume;
 
+const eewAudio = new Audio(EewSoundConfig.src);
+eewAudio.volume = EewSoundConfig.volume;
+
 function playAlertSound() {
     if (!SoundConfig.enabled || !userInteracted) return;
     alertAudio.currentTime = 0;
     alertAudio.play().catch(e => console.warn('効果音の再生失敗:', e));
+}
+
+function playEewSound() {
+    if (!EewSoundConfig.enabled) return;
+    eewAudio.currentTime = 0;
+    eewAudio.play().catch(e => console.warn('EEW音声の再生失敗:', e));
 }
 
 (function () {
@@ -1607,7 +1893,7 @@ async function initKyoshin() {
 }
 
 async function loadPoints() {
-    const res = await fetch('./source/point.csv');
+    const res = await fetch('./data/raw/point.csv');
     const text = await res.text();
     const lines = text.split('\n').slice(1);
     const points = [];
