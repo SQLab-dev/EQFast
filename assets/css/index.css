@@ -22,6 +22,24 @@ body {
     z-index: 0;
 }
 
+.last-update-badge {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 40;
+    min-width: 142px;
+    padding: 10px 25px;
+    border-radius: 10px;
+    background-color: #0d0e13;
+    color: #ffffff;
+    font-size: 16px;
+    font-family: 'Jost', 'Noto Sans', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-align: center;
+    pointer-events: none;
+}
+
 .side-panel {
     position: relative;
     flex-shrink: 0;
@@ -763,4 +781,45 @@ body {
 .kyoshin-mode-btn.active {
     background-color: #3e506d;
     color: #ffffff;
+}
+
+.kyoshin-detect-status {
+    margin-top: 0;
+}
+
+.kyoshin-detect-status-text {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.kyoshin-detect-level {
+    margin-top: 6px !important;
+    color: #aaaaaa;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+}
+
+.kyoshin-detect-status-text.kyoshin-detect-idle { color: #d0d5de; }
+.kyoshin-detect-status-text.kyoshin-detect-active { color: #ffffff; }
+.kyoshin-detect-status-text.kyoshin-detect-strong { color: #ffffff; }
+
+.kyoshin-detect-panel {
+    margin-top: 8px;
+    border-radius: 8px;
+    background-color: #2a364c;
+    box-shadow: 0 0 8px #0000004b;
+    padding: 8px 10px;
+}
+
+.kyoshin-detect-areas {
+    margin-top: 0;
+}
+
+.kyoshin-detect-area-item {
+    margin: 0;
+    color: #d9e2f5;
+    font-size: 12px;
+    line-height: 1.45;
 }

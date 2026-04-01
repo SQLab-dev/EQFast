@@ -40,6 +40,16 @@
                 </div>
             </div>
 
+            <div class="voice-settings kyoshin-detect-info" id="kyoshin-detect-card" hidden>
+                <div class="kyoshin-detect-status">
+                    <p class="kyoshin-detect-status-text kyoshin-detect-idle" id="kyoshin-detect-status-text">揺れ未検知</p>
+                    <p class="kyoshin-detect-level" id="kyoshin-detect-level">待機中</p>
+                </div>
+                <div class="kyoshin-detect-panel" id="kyoshin-detect-panel" hidden>
+                    <div class="kyoshin-detect-areas" id="kyoshin-detect-areas"></div>
+                </div>
+            </div>
+
             <div class="latest-card">
                 <p class="latest-card_title">最新の地震</p>
                 <h2 class="latest-card_tsunami"></h2>
@@ -158,6 +168,20 @@
                         </div>
                     </div>
 
+                    <div class="sound-setting-item">
+                        <span class="voice-param-label sound-setting-label">揺れ検知時</span>
+                        <div class="sound-setting-actions">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sound-shake-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <button class="voice-test-btn voice-test-btn-inline" id="sound-shake-test-btn">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                再生
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="voice-param-row" style="margin-top:8px; justify-content:flex-start;">
                         <div class="voice-status">
                             <span class="voice-status-dot" id="sound-status-dot"></span>
@@ -184,6 +208,7 @@
         </div>
 
         <div id="map"></div>
+    <div class="last-update-badge" id="last-update-time">--/-- --:--:--</div>
 
         <script src="assets/vendor/JMAPoints.js"></script>
         <script src="assets/vendor/SmoothWheelZoom.js"></script>
