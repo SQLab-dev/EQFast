@@ -25,3 +25,30 @@
 ## 注意事項
 
 このプロジェクトは、防災科学技術研究所、P2P地震情報(開発者:たくや様)、気象庁、その他のサービスとは一切関係ありません。本プロジェクトに関するお問い合わせは[こちら](https://docs.google.com/forms/d/e/1FAIpQLSdB071foWH-0Wb1YMfDrvUOZAJoRu3RKJXG1gtZmK4GCN-g_g/viewform)までお願いします。
+
+## 実行方法 (Next.js)
+
+このリポジトリは、既存の `assets/` と `data/` を保持したまま Next.js で起動できる構成に移行しています。
+
+1. 依存パッケージをインストール
+
+```bash
+npm install
+```
+
+1. 開発サーバーを起動
+
+```bash
+npm run dev
+```
+
+1. ブラウザで確認
+
+```text
+http://localhost:3000
+```
+
+### 補足
+
+- 既存のプレーン HTML エントリである `index.html` は互換性確認のため残しています。
+- Next.js 実行時は `server.cjs` が `/assets` と `/data` を静的配信するため、既存の JS の相対パスを変更せずに動作します。

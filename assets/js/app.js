@@ -4,8 +4,9 @@ const urlParams = new URLSearchParams(window.location.search);
 const DEFAULT_TEST_EVENT_ID = '202512082315';
 const TEST_EVENT_ID_PATTERN = /^\d{10,14}$/;
 const TEST_REPLAY_LEAD_MS = 5000;
+const REPLAY_RECENT_STORAGE_KEY = 'eqfast.replayRecentEventIds';
 
-function getRequestedTestEventId() {
+function getTestEventId() {
     const requested = (urlParams.get('event') || '').trim();
     return TEST_EVENT_ID_PATTERN.test(requested) ? requested : DEFAULT_TEST_EVENT_ID;
 }
@@ -17,7 +18,7 @@ function buildPageUrl(paramsUpdater) {
     return `${window.location.pathname}${query ? `?${query}` : ''}`;
 }
 
-function getReplayEventBasePath(eventId = getRequestedTestEventId()) {
+function getReplayBasePath(eventId = getTestEventId()) {
     return `./data/replay/${eventId}`;
 }
 
@@ -68,17 +69,17 @@ async function fetchJsonFromCandidates(cacheKey, paths) {
 }
 
 async function fetchTestDataJson(baseName) {
-    const cacheKey = `${baseName}:${getRequestedTestEventId()}`;
-    return fetchJsonFromCandidates(cacheKey, [`${getReplayEventBasePath()}/${baseName}.json`]);
+    const cacheKey = `${baseName}:${getTestEventId()}`;
+    return fetchJsonFromCandidates(cacheKey, [`${getReplayBasePath()}/${baseName}.json`]);
 }
 
 const CONFIG = {
     isTest: urlParams.has("test"),
-    testEventId: getRequestedTestEventId(),
+    testEventId: getTestEventId(),
 
     get apiurl() {
         return this.isTest
-        ? `${getReplayEventBasePath(this.testEventId)}/earthquakes.json`
+        ? `${getReplayBasePath(this.testEventId)}/earthquakes.json`
         : "https://eqf-worker.spdev-3141.workers.dev/api/p2pquake?codes=551&limit=20"
     },
 
@@ -115,31 +116,149 @@ if (CONFIG.isTest) {
 }
 
 const sidePanelElement = document.querySelector('.side-panel');
+
+function appendAboveFeedbackButtons(parentElement, element) {
+    const firstFeedbackButton = parentElement.querySelector('.feedback-button');
+    if (firstFeedbackButton) {
+        parentElement.insertBefore(element, firstFeedbackButton);
+        return;
+    }
+    parentElement.appendChild(element);
+}
+
+function loadRecentReplayEventIds() {
+    try {
+        const raw = window.localStorage.getItem(REPLAY_RECENT_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+            .map((id) => String(id || '').trim())
+            .filter((id) => TEST_EVENT_ID_PATTERN.test(id));
+    } catch {
+        return [];
+    }
+}
+
+function saveRecentReplayEventId(eventId) {
+    if (!TEST_EVENT_ID_PATTERN.test(eventId)) return;
+    const current = loadRecentReplayEventIds().filter((id) => id !== eventId);
+    const next = [eventId, ...current].slice(0, 12);
+    try {
+        window.localStorage.setItem(REPLAY_RECENT_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+        // Ignore storage failures.
+    }
+}
+
+function navigateToReplayEvent(eventId) {
+    saveRecentReplayEventId(eventId);
+    window.location.href = buildPageUrl((params) => {
+        params.set('test', '');
+        params.set('event', eventId);
+    });
+}
+
+function buildReplayEventCandidates() {
+    const source = [CONFIG.testEventId, DEFAULT_TEST_EVENT_ID, ...loadRecentReplayEventIds()]
+        .map((id) => String(id || '').trim())
+        .filter((id) => TEST_EVENT_ID_PATTERN.test(id));
+    return Array.from(new Set(source));
+}
+
+function appendReplaySelector(parentElement) {
+    const wrap = document.createElement('div');
+    wrap.className = 'replay-selector';
+
+    const title = document.createElement('p');
+    title.className = 'replay-selector-title';
+    title.textContent = '地震リプレイ';
+
+    const hint = document.createElement('p');
+    hint.className = 'replay-selector-hint';
+    hint.textContent = '候補を選ぶか、イベントIDを入力して再生できます。';
+
+    const select = document.createElement('select');
+    select.className = 'replay-selector-select';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '候補から選択';
+    select.appendChild(placeholder);
+
+    buildReplayEventCandidates().forEach((eventId) => {
+        const option = document.createElement('option');
+        option.value = eventId;
+        option.textContent = eventId;
+        if (eventId === CONFIG.testEventId) {
+            option.textContent = `${eventId} (現在)`;
+        }
+        select.appendChild(option);
+    });
+
+    const input = document.createElement('input');
+    input.className = 'replay-selector-input';
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.maxLength = 14;
+    input.placeholder = 'イベントID (10〜14桁)';
+    input.value = CONFIG.testEventId;
+
+    const error = document.createElement('p');
+    error.className = 'replay-selector-error';
+    error.hidden = true;
+
+    const button = document.createElement('button');
+    button.className = 'replay-selector-button';
+    button.type = 'button';
+    button.textContent = 'このイベントを再生';
+
+    const submit = () => {
+        const nextEventId = String(input.value || '').trim();
+        if (!TEST_EVENT_ID_PATTERN.test(nextEventId)) {
+            error.hidden = false;
+            error.textContent = 'イベントIDは10桁から14桁の数字で入力してください。';
+            return;
+        }
+
+        error.hidden = true;
+        navigateToReplayEvent(nextEventId);
+    };
+
+    select.addEventListener('change', () => {
+        if (!select.value) return;
+        input.value = select.value;
+        error.hidden = true;
+    });
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        submit();
+    });
+
+    button.addEventListener('click', submit);
+
+    wrap.appendChild(title);
+    wrap.appendChild(hint);
+    wrap.appendChild(select);
+    wrap.appendChild(input);
+    wrap.appendChild(error);
+    wrap.appendChild(button);
+    parentElement.appendChild(wrap);
+}
+
 if (sidePanelElement) {
-    sidePanelElement.appendChild(toggleBtn);
+    appendAboveFeedbackButtons(sidePanelElement, toggleBtn);
 
     if (CONFIG.isTest) {
-        const replayBtn = document.createElement('a');
-        replayBtn.className = 'feedback-button';
-        replayBtn.href = '#';
-        replayBtn.textContent = '地震のリプレイ';
-        replayBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            const requested = window.prompt('再生したい地震のイベントIDを入力してください', CONFIG.testEventId);
-            if (requested === null) return;
-
-            const nextEventId = requested.trim();
-            if (!TEST_EVENT_ID_PATTERN.test(nextEventId)) {
-                window.alert('イベントIDは10桁から14桁の数字で入力してください。');
-                return;
-            }
-
-            window.location.href = buildPageUrl((params) => {
-                params.set('test', '');
-                params.set('event', nextEventId);
-            });
-        });
-        sidePanelElement.appendChild(replayBtn);
+        const firstFeedbackButton = sidePanelElement.querySelector('.feedback-button');
+        if (firstFeedbackButton) {
+            const wrap = document.createElement('div');
+            appendReplaySelector(wrap);
+            sidePanelElement.insertBefore(wrap.firstChild, firstFeedbackButton);
+        } else {
+            appendReplaySelector(sidePanelElement);
+        }
     }
 }
 
@@ -159,8 +278,20 @@ function formatLastUpdateTime(date) {
 function setLastDataUpdateTime(date) {
     const label = document.getElementById('last-update-time');
     if (!label) return;
-    label.textContent = formatLastUpdateTime(date);
+
+    const parsed = date instanceof Date ? date : new Date(date);
+    if (!(parsed instanceof Date) || Number.isNaN(parsed.getTime())) return;
+
+    if (Number.isFinite(setLastDataUpdateTime.lastDisplayedMs)
+        && parsed.getTime() < setLastDataUpdateTime.lastDisplayedMs) {
+        return;
+    }
+
+    setLastDataUpdateTime.lastDisplayedMs = parsed.getTime();
+    label.textContent = formatLastUpdateTime(parsed);
 }
+
+setLastDataUpdateTime.lastDisplayedMs = Number.NEGATIVE_INFINITY;
 
 var map = L.map('map', {
     scrollWheelZoom: false,
@@ -181,6 +312,10 @@ const resetViewControl = L.Control.extend({
 
         L.DomEvent.on(btn, 'click', (e) => {
             L.DomEvent.preventDefault(e);
+            if (currentDisplayedEarthquake) {
+                moveCameraToEarthquake(currentDisplayedEarthquake);
+                return;
+            }
             map.setView([36.575, 137.984], 6);
         });
 
@@ -212,6 +347,7 @@ map.createPane("shindo55").style.zIndex = 55;
 map.createPane("shindo60").style.zIndex = 60;
 map.createPane("shindo70").style.zIndex = 70;
 map.createPane("shindo_canvas").style.zIndex = 200;
+map.createPane("kyoshin_canvas").style.zIndex = 210;
 map.createPane("wavefront").style.zIndex = 350;
 map.createPane("shingen").style.zIndex = 400;
 map.createPane("tsunami_map").style.zIndex = 110;
@@ -220,14 +356,29 @@ let shindoLayer = L.layerGroup().addTo(map);
 let shindoFilledLayer = L.layerGroup().addTo(map);
 let JMAPointsJson = null;
 let shindoCanvasLayer = null;
+let kyoshinCanvasLayer = null;
 let hypoMarker = null;
 let stationMap = {};
 let japan_data = null;
 let filled_list = {};
+const areaCodeToIndexMap = new Map();
+const areaNameToCodeMap = new Map();
+const areaBoundsCache = new Map();
+const shindoFillState = {
+    layerByAreaCode: new Map(),
+    activeAreaCodes: new Set(),
+    colorByAreaCode: Object.create(null),
+};
+let shindoFillPrewarmStarted = false;
+let shindoFillPrewarmCompleted = false;
+let currentDisplayedEarthquake = null;
 let selectedEarthquakeKey = null;
 let lastRenderedEarthquakeKey = null;
 let PROXY = 'https://eqf-kyoshin.spdev-3141.workers.dev/?url=';
 let kyoshinMode = 'shindo'; // 'shindo' or 'pga'
+const KYOSHIN_VIEW_CONFIG = {
+    showCandidates: false,
+};
 let jma2001TravelTable = null;
 let waveCurrentEq = null;
 let wavePFrontLayer = null;
@@ -235,6 +386,8 @@ let waveSFrontLayer = null;
 let waveTimerId = null;
 let testModeEewEq = null;
 let testModeEewRaw = null;
+let testModeEewTimeline = [];
+let testModeEewTimelineIndex = -1;
 let liveEewEq = null;
 let liveEewRaw = null;
 let eewWs = null;
@@ -243,9 +396,22 @@ let testEewAnnounceTimerId = null;
 let latestUpdateRequestId = 0;
 let latestAppliedUpdateRequestId = 0;
 let lastPlayedEewFirstReportKey = null;
-let testEewAnnouncedSoundPlayed = false;
-let testEewAnnouncedUiUpdated = false;
-let isHistoricalEqVisualsSuppressedByKyoshin = false;
+let preferLatestEqDuringEew = false;
+let lastSeenActiveEewUpdateKey = '';
+let lastSeenLatestDetailScaleKey = '';
+const eewWarnAreaSignatureByEvent = new Map();
+const kyoshinAutoViewState = {
+    lastDetectedSignature: '',
+    lastMovedAt: 0,
+    lastTargetCenter: null,
+    lastTargetSpanKm: null,
+};
+const KYOSHIN_AUTO_VIEW_CONFIG = {
+    minIntervalMs: 2200,
+    minCenterMoveKm: 18,
+    minZoomDelta: 0.65,
+    minSpanChangeRatio: 0.28,
+};
 const WAVE_SVG_NS = 'http://www.w3.org/2000/svg';
 const WAVE_S_GRADIENT_ID = 'wavefront-s-radial-gradient';
 
@@ -272,22 +438,117 @@ const EEW_WS_CONFIG = {
 
 const EEW_HTTP_CONFIG = {
     snapshotUrl: 'https://api.wolfx.jp/jma_eew.json',
+    // Worker allowlist is currently K-MONI only, so EEW snapshot stays direct.
+    snapshotProxyPrefix: null,
     finalHideAfterMs: 5 * 60 * 1000,
 };
 
 const TEST_EEW_ANNOUNCE_POLL_MS = 250;
 
+const EEW_SOURCE = {
+    LIVE: 'live',
+    TEST: 'test',
+};
+
 const shindoCanvasPane = map.createPane("shindo_canvas");
 shindoCanvasPane.style.zIndex = 200;
 shindoCanvasPane.style.overflow = 'visible';
 
+const kyoshinCanvasPane = map.createPane("kyoshin_canvas");
+kyoshinCanvasPane.style.zIndex = 210;
+kyoshinCanvasPane.style.overflow = 'visible';
+
 const PolygonLayer_Style = {
-    "color": "rgb(223, 223, 223)",
+    "color": "rgb(190, 190, 190)",
     "weight": 1.8,
     "opacity": 0.25,
     "fillColor": "#333333",
     "fillOpacity": 1
 };
+
+const WorldPolygonLayer_Style = {
+    "color": "rgb(95, 106, 122)",
+    "weight": 1,
+    "opacity": 0.28,
+    "fill": true,
+    "fillColor": "#3d3d3d",
+    "fillOpacity": 0.38,
+};
+
+function getWorldPolygonStyle() {
+    return {
+        ...WorldPolygonLayer_Style,
+    };
+}
+
+function mercatorMetersToLatLng(pair) {
+    const x = Number(pair?.[0]);
+    const y = Number(pair?.[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return pair;
+
+    const lng = (x / 20037508.34) * 180;
+    const lat = (Math.atan(Math.exp((y / 20037508.34) * Math.PI)) * 360 / Math.PI) - 90;
+    return [lng, lat];
+}
+
+function convertWorldMapCoordinatesToWgs84(coords) {
+    if (!Array.isArray(coords)) return coords;
+    if (coords.length >= 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+        return mercatorMetersToLatLng(coords);
+    }
+    return coords.map(convertWorldMapCoordinatesToWgs84);
+}
+
+function isJapanWorldFeature(feature) {
+    const props = feature?.properties || {};
+    const codeKeys = ['ISO_A3', 'ADM0_A3', 'BRK_A3', 'SOV_A3', 'GU_A3', 'SU_A3'];
+    for (const key of codeKeys) {
+        if (String(props[key] || '').toUpperCase() === 'JPN') return true;
+    }
+
+    const nameKeys = ['NAME', 'NAME_LONG', 'NAME_EN', 'ADMIN', 'SOVEREIGNT', 'GEOUNIT', 'SUBUNIT'];
+    for (const key of nameKeys) {
+        if (String(props[key] || '').toLowerCase() === 'japan') return true;
+    }
+
+    return false;
+}
+
+function convertWorldMapGeoJsonToWgs84(source) {
+    if (!source || !Array.isArray(source.features)) return source;
+
+    return {
+        ...source,
+        features: source.features.map((feature) => {
+            if (!feature?.geometry) return feature;
+            return {
+                ...feature,
+                geometry: {
+                    ...feature.geometry,
+                    coordinates: convertWorldMapCoordinatesToWgs84(feature.geometry.coordinates),
+                },
+            };
+        }),
+    };
+}
+
+const worldMapDataReady = new Promise((resolve) => {
+    $.getJSON('data/geo/worldmap.json')
+        .done((rawData) => {
+            const worldData = convertWorldMapGeoJsonToWgs84(rawData);
+            L.geoJson(worldData, {
+                pane: 'pane_map1',
+                style: () => getWorldPolygonStyle(),
+                interactive: false,
+                filter: (feature) => !isJapanWorldFeature(feature),
+            }).addTo(map);
+            resolve(worldData);
+        })
+        .fail((_, textStatus, errorThrown) => {
+            console.error('Failed to load data/geo/worldmap.json:', textStatus, errorThrown);
+            resolve(null);
+        });
+});
 
 const shindoFillColorMap = {
     10: "#007a9c",   // 1
@@ -310,6 +571,7 @@ const japanDataReady = new Promise((resolve, reject) => {
                 pane: "pane_map3",
                 style: PolygonLayer_Style
             }).addTo(map);
+            scheduleShindoFillPrewarm();
             resolve(data);
         })
         .fail((_, textStatus, errorThrown) => {
@@ -381,6 +643,7 @@ const ShindoCanvasLayer = L.Layer.extend({
 
     initialize: function () {
         this._points = [];
+        this._rafId = null;
     },
 
     onAdd: function (map) {
@@ -389,10 +652,11 @@ const ShindoCanvasLayer = L.Layer.extend({
         this._canvas = L.DomUtil.create('canvas', 'shindo-canvas-layer');
         this._canvas.style.position = 'absolute';
         this._canvas.style.pointerEvents = 'none';
+        this._ctx = this._canvas.getContext('2d');
 
         map.getPane('shindo_canvas').appendChild(this._canvas);
 
-        map.on('move zoom viewreset zoomend moveend', this._redraw, this);
+        map.on('move zoom viewreset zoomend moveend', this._scheduleRedraw, this);
         map.on('resize', this._resize, this);
 
         this._resize();
@@ -400,14 +664,26 @@ const ShindoCanvasLayer = L.Layer.extend({
     },
 
     onRemove: function (map) {
+        if (this._rafId != null) {
+            cancelAnimationFrame(this._rafId);
+            this._rafId = null;
+        }
         this._canvas.remove();
-        map.off('move zoom viewreset zoomend moveend', this._redraw, this);
+        map.off('move zoom viewreset zoomend moveend', this._scheduleRedraw, this);
         map.off('resize', this._resize, this);
     },
 
     setPoints: function (points) {
         this._points = points;
-        this._redraw();
+        this._scheduleRedraw();
+    },
+
+    _scheduleRedraw: function () {
+        if (this._rafId != null) return;
+        this._rafId = requestAnimationFrame(() => {
+            this._rafId = null;
+            this._redraw();
+        });
     },
 
     _updateCanvasPosition: function () {
@@ -421,7 +697,7 @@ const ShindoCanvasLayer = L.Layer.extend({
         this._canvas.width = size.x;
         this._canvas.height = size.y;
         this._updateCanvasPosition();
-        this._redraw();
+        this._scheduleRedraw();
     },
 
     _redraw: function () {
@@ -429,7 +705,7 @@ const ShindoCanvasLayer = L.Layer.extend({
 
         this._updateCanvasPosition();
 
-        const ctx = this._canvas.getContext('2d');
+        const ctx = this._ctx;
         ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
 
         const iconSize = 20;
@@ -445,6 +721,130 @@ const ShindoCanvasLayer = L.Layer.extend({
     }
 });
 
+const KyoshinCanvasLayer = L.Layer.extend({
+
+    initialize: function () {
+        this._items = [];
+        this._rafId = null;
+    },
+
+    onAdd: function (map) {
+        this._map = map;
+
+        this._canvas = L.DomUtil.create('canvas', 'kyoshin-canvas-layer');
+        this._canvas.style.position = 'absolute';
+        this._canvas.style.pointerEvents = 'none';
+        this._ctx = this._canvas.getContext('2d');
+
+        map.getPane('kyoshin_canvas').appendChild(this._canvas);
+
+        map.on('move zoom viewreset zoomend moveend', this._scheduleRedraw, this);
+        map.on('resize', this._resize, this);
+
+        this._resize();
+        return this;
+    },
+
+    onRemove: function (map) {
+        if (this._rafId != null) {
+            cancelAnimationFrame(this._rafId);
+            this._rafId = null;
+        }
+        this._canvas.remove();
+        map.off('move zoom viewreset zoomend moveend', this._scheduleRedraw, this);
+        map.off('resize', this._resize, this);
+    },
+
+    setRenderItems: function (items) {
+        this._items = Array.isArray(items) ? items : [];
+        this._scheduleRedraw();
+    },
+
+    _scheduleRedraw: function () {
+        if (this._rafId != null) return;
+        this._rafId = requestAnimationFrame(() => {
+            this._rafId = null;
+            this._redraw();
+        });
+    },
+
+    _updateCanvasPosition: function () {
+        const mapPane = this._map.getPane('mapPane');
+        const offset = L.DomUtil.getPosition(mapPane);
+        L.DomUtil.setPosition(this._canvas, L.point(-offset.x, -offset.y));
+    },
+
+    _resize: function () {
+        const size = this._map.getSize();
+        this._canvas.width = size.x;
+        this._canvas.height = size.y;
+        this._updateCanvasPosition();
+        this._scheduleRedraw();
+    },
+
+    _redraw: function () {
+        if (!this._map) return;
+
+        this._updateCanvasPosition();
+
+        const ctx = this._ctx;
+        const width = this._canvas.width;
+        const height = this._canvas.height;
+        ctx.clearRect(0, 0, width, height);
+
+        this._items.forEach((item) => {
+            const pt = this._map.latLngToContainerPoint([item.lat, item.lon]);
+            const radius = Number(item.radius) || 0;
+            const margin = Math.max(radius + 6, (Number(item.iconSize) || 0) / 2 + 4);
+
+            if (pt.x < -margin || pt.y < -margin || pt.x > width + margin || pt.y > height + margin) {
+                return;
+            }
+
+            if (item.useIcon) {
+                const img = iconCache[item.iconName];
+                const iconSize = Number(item.iconSize) || 18;
+                const half = iconSize / 2;
+
+                if (item.showDetectedVisuals) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.95;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, half + 2, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#f3e44c';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                if (!img) return;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0.2, Math.min(1, Number(item.fillOpacity) || 1));
+                ctx.drawImage(img, pt.x - half, pt.y - half, iconSize, iconSize);
+                ctx.restore();
+                return;
+            }
+
+            ctx.save();
+            ctx.globalAlpha = 1;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = item.color;
+            ctx.globalAlpha = Math.max(0, Math.min(1, Number(item.fillOpacity) || 0));
+            ctx.fill();
+
+            const strokeWeight = Number(item.strokeWeight) || 0;
+            if (strokeWeight > 0) {
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = item.strokeColor || item.color;
+                ctx.lineWidth = strokeWeight;
+                ctx.stroke();
+            }
+            ctx.restore();
+        });
+    },
+});
+
 const iconMap = {
     10: "int1",
     20: "int2",
@@ -458,12 +858,14 @@ const iconMap = {
     70: "int7"
 };
 
-Promise.all([preloadIcons(), japanDataReady, loadStationData(), loadJma2001TravelTimeTable(), loadTestModeEewData()])
-    .then(async ([, , , travelTable, eewData]) => {
+Promise.all([preloadIcons(), worldMapDataReady, japanDataReady, loadStationData(), loadJma2001TravelTimeTable(), loadTestModeEewData()])
+    .then(async ([, , , , travelTable, eewData]) => {
         jma2001TravelTable = travelTable;
-        testModeEewEq = eewData?.eq || null;
-        testModeEewRaw = eewData?.raw || null;
-        startTestModeEewAnnounceWatcher();
+        if (!CONFIG.isTest) {
+            testModeEewEq = eewData?.eq || null;
+            testModeEewRaw = eewData?.raw || null;
+        }
+        startTestEewWatcher();
 
         if (!CONFIG.isTest) {
             await loadInitialLiveEewSnapshot();
@@ -471,6 +873,8 @@ Promise.all([preloadIcons(), japanDataReady, loadStationData(), loadJma2001Trave
 
         shindoCanvasLayer = new ShindoCanvasLayer();
         shindoCanvasLayer.addTo(map);
+        kyoshinCanvasLayer = new KyoshinCanvasLayer();
+        kyoshinCanvasLayer.addTo(map);
 
         initWaveFrontLayers();
         initLiveEewStream();
@@ -503,41 +907,6 @@ if (eewCardElement) {
     });
 }
 
-function createShindoIcon(scale) {
-    const scaleText = scaleMap[String(scale)] || "?";
-    const fillColor = getShindoFillColor(scale);
-
-    const match = scaleText.match(/^(\d)([^\d]*)$/);
-    const number = match ? match[1] : scaleText;
-    const modifier = match ? match[2] : "";
-
-    const textColor = (number === "3" || number === "4") ? "#000" : "#fff";
-
-    const html = `
-        <div style="
-            width: 22px; height: 22px;
-            background: ${fillColor};
-            border: 2px solid #fff;
-            border-radius: 4px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 12px;
-            color: ${textColor};
-            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-            line-height: 1;
-        ">
-            ${number}<span style="font-size:8px">${modifier}</span>
-        </div>
-    `;
-
-    return L.divIcon({
-        html: html,
-        className: "",
-        iconSize: [22, 22],
-        iconAnchor: [11, 11],
-        popupAnchor: [0, -15]
-    });
-}
-
 function updateData() {
     const requestId = ++latestUpdateRequestId;
 
@@ -556,8 +925,28 @@ function updateData() {
                     : [];
                 const latest = detailScaleData[0];
                 const activeEewEq = getActiveEewEq();
+                const activeEewRaw = getActiveEewRaw();
 
                 if (!latest && !activeEewEq) return;
+
+                const latestDetailScaleKey = getDetailScaleUpdateKey(latest);
+                if (latestDetailScaleKey) {
+                    if (lastSeenLatestDetailScaleKey && latestDetailScaleKey !== lastSeenLatestDetailScaleKey && activeEewEq) {
+                        // EEW発表中に新しい地震情報が来たら通常表示へ切り替える。
+                        preferLatestEqDuringEew = true;
+                    }
+                    lastSeenLatestDetailScaleKey = latestDetailScaleKey;
+                }
+
+                const activeEewUpdateKey = getEewUpdateKey(activeEewRaw);
+                if (!activeEewUpdateKey) {
+                    preferLatestEqDuringEew = false;
+                    lastSeenActiveEewUpdateKey = '';
+                } else if (activeEewUpdateKey !== lastSeenActiveEewUpdateKey) {
+                    // EEW続報が来たらEEW表示へ戻す。
+                    preferLatestEqDuringEew = false;
+                    lastSeenActiveEewUpdateKey = activeEewUpdateKey;
+                }
 
                 const eqMap = new Map();
                 detailScaleData.forEach(eq => {
@@ -580,6 +969,8 @@ function updateData() {
                         selectedEarthquakeKey = null;
                         displayEq = activeEewEq || liveEewEq || latest;
                     }
+                } else if (activeEewEq && preferLatestEqDuringEew && latest) {
+                    displayEq = latest;
                 } else if (activeEewEq) {
                     displayEq = activeEewEq;
                 } else if (!CONFIG.isTest && liveEewEq) {
@@ -620,7 +1011,6 @@ function updateData() {
                     : [];
 
                 updateEqHistory(historyData);
-                setLastDataUpdateTime(CONFIG.isTest ? CONFIG.getSimulatedTime() : new Date());
             } catch (error) {
                 console.error('[updateData] Failed to render earthquake data', error);
             }
@@ -635,13 +1025,41 @@ function loadTestModeEewData() {
 
     return fetchTestDataJson('eew')
         .then(({ json }) => {
-            const normalizedJson = normalizeTestEewTimeline(json);
-            const eq = convertTestEewToDetailScale(normalizedJson);
-            const announcedTime = parseJmaDateTime(normalizedJson?.AnnouncedTime);
-            const originTime = parseJmaDateTime(normalizedJson?.OriginTime);
+            const rawItems = Array.isArray(json) ? json : [json];
+            const timeline = rawItems
+                .map((item) => normalizeTestEew(item))
+                .filter((item) => item && typeof item === 'object')
+                .map((raw) => ({
+                    raw,
+                    eq: testEewToDetail(raw),
+                    announcedMs: getEewAnnouncedMillis(raw),
+                }))
+                .sort((a, b) => {
+                    const aMs = Number.isFinite(a.announcedMs) ? a.announcedMs : Number.POSITIVE_INFINITY;
+                    const bMs = Number.isFinite(b.announcedMs) ? b.announcedMs : Number.POSITIVE_INFINITY;
+                    if (aMs !== bMs) return aMs - bMs;
+
+                    const aSerial = Number(a.raw?.Serial);
+                    const bSerial = Number(b.raw?.Serial);
+                    if (Number.isFinite(aSerial) && Number.isFinite(bSerial) && aSerial !== bSerial) {
+                        return aSerial - bSerial;
+                    }
+
+                    return 0;
+                });
+
+            testModeEewTimeline = timeline;
+            setEewState(EEW_SOURCE.TEST, { raw: null, eq: null, timeline, index: -1 });
+            eewWarnAreaSignatureByEvent.clear();
+
+            const firstTimelineItem = timeline[0] || null;
+            const firstRaw = firstTimelineItem?.raw || null;
+            const firstEq = firstTimelineItem?.eq || null;
+
+            const originTime = parseJmaDateTime(firstRaw?.OriginTime);
             const originMs = Date.parse(originTime || '');
-            const announcedMs = Date.parse(announcedTime || '');
-            const eqTimeMs = Date.parse(eq?.earthquake?.time || '');
+            const announcedMs = firstTimelineItem?.announcedMs;
+            const eqTimeMs = Date.parse(firstEq?.earthquake?.time || '');
 
             let replayStartMs = NaN;
             if (Number.isFinite(originMs)) {
@@ -657,7 +1075,9 @@ function loadTestModeEewData() {
                 CONFIG._testStartedAt = Date.now();
                 CONFIG.testReplayStartMs = CONFIG.testBaseTime.getTime();
             }
-            return { raw: normalizedJson, eq };
+
+            syncTestEewTimeline({ playSound: false });
+            return { raw: firstRaw, eq: firstEq };
         })
         .catch((error) => {
             console.warn('[test] Failed to load test EEW JSON', error);
@@ -672,7 +1092,7 @@ function initLiveEewStream() {
         eewWs = new WebSocket(EEW_WS_CONFIG.url);
     } catch (error) {
         console.warn('[eew] WebSocket initialize failed', error);
-        scheduleLiveEewReconnect();
+        scheduleEewReconnect();
         return;
     }
 
@@ -691,7 +1111,7 @@ function initLiveEewStream() {
     eewWs.addEventListener('close', () => {
         console.warn('[eew] disconnected');
         eewWs = null;
-        scheduleLiveEewReconnect();
+        scheduleEewReconnect();
     });
 
     eewWs.addEventListener('error', (error) => {
@@ -699,13 +1119,113 @@ function initLiveEewStream() {
     });
 }
 
-function scheduleLiveEewReconnect() {
+function scheduleEewReconnect() {
     if (CONFIG.isTest || eewReconnectTimer) return;
 
     eewReconnectTimer = setTimeout(() => {
         eewReconnectTimer = null;
         initLiveEewStream();
     }, EEW_WS_CONFIG.reconnectMs);
+}
+
+function getEewState(source = CONFIG.isTest ? EEW_SOURCE.TEST : EEW_SOURCE.LIVE) {
+    if (source === EEW_SOURCE.TEST) {
+        return {
+            raw: testModeEewRaw,
+            eq: testModeEewEq,
+            timeline: testModeEewTimeline,
+            index: testModeEewTimelineIndex,
+        };
+    }
+
+    return {
+        raw: liveEewRaw,
+        eq: liveEewEq,
+        timeline: null,
+        index: -1,
+    };
+}
+
+function setEewState(source, { raw = null, eq = null, timeline = undefined, index = undefined } = {}) {
+    if (source === EEW_SOURCE.TEST) {
+        testModeEewRaw = raw;
+        testModeEewEq = eq;
+        if (timeline !== undefined) testModeEewTimeline = timeline;
+        if (index !== undefined) testModeEewTimelineIndex = index;
+        return;
+    }
+
+    liveEewRaw = raw;
+    liveEewEq = eq;
+}
+
+function clearEewState(source, { clearWarnAreaSignature = false, hideCard = true } = {}) {
+    if (source === EEW_SOURCE.TEST) {
+        setEewState(EEW_SOURCE.TEST, { raw: null, eq: null, index: -1 });
+    } else {
+        setEewState(EEW_SOURCE.LIVE, { raw: null, eq: null });
+    }
+
+    if (clearWarnAreaSignature) {
+        eewWarnAreaSignatureByEvent.clear();
+    }
+
+    if (hideCard) {
+        updateEewCard(getCurrentEewRaw());
+    }
+}
+
+function getCurrentEewSource() {
+    return CONFIG.isTest ? EEW_SOURCE.TEST : EEW_SOURCE.LIVE;
+}
+
+function getCurrentEewRaw() {
+    return getEewState(getCurrentEewSource()).raw;
+}
+
+function getCurrentEewEq() {
+    return getEewState(getCurrentEewSource()).eq;
+}
+
+function applyEewUpdate(source, raw, options = {}) {
+    const {
+        autoMove = true,
+        playSound = true,
+        clearWarnAreaSignature = false,
+        updateCard = true,
+    } = options;
+
+    const normalized = normalizeEewPayload(raw);
+    if (!shouldDisplayEew(normalized)) {
+        clearEewState(source, { clearWarnAreaSignature, hideCard: updateCard });
+        if (source === getCurrentEewSource()) {
+            waveCurrentEq = null;
+            hideWaveFrontLayers();
+        }
+        return null;
+    }
+
+    const eq = testEewToDetail(normalized);
+    if (!eq) {
+        clearEewState(source, { clearWarnAreaSignature, hideCard: updateCard });
+        return null;
+    }
+
+    setEewState(source, { raw: normalized, eq });
+
+    if (source === getCurrentEewSource()) {
+        renderEarthquakeOnMap(eq, { autoMove });
+        if (updateCard) {
+            updateEewCard(normalized);
+        }
+    }
+
+    if (playSound) {
+        playEewFirst(normalized);
+        maybePlayEewWarnAreaUpdate(normalized);
+    }
+
+    return { raw: normalized, eq };
 }
 
 function handleLiveEewMessage(payload) {
@@ -718,22 +1238,14 @@ function handleLiveEewMessage(payload) {
         return;
     }
 
-    if (!data || data.type !== 'jma_eew') return;
-
-    liveEewRaw = data;
-
-    if (data.isCancel) {
-        clearLiveEewDisplay();
-        return;
-    }
-
-    const eq = convertTestEewToDetailScale(data);
-    if (!eq) return;
-
-    liveEewEq = eq;
-    renderEarthquakeOnMap(eq, { autoMove: true });
-    updateEewCard(liveEewRaw);
-    playEewSoundForFirstReport(data);
+    data = normalizeEewPayload(data);
+    if (!data) return;
+    applyEewUpdate(EEW_SOURCE.LIVE, data, {
+        autoMove: true,
+        playSound: true,
+        clearWarnAreaSignature: true,
+        updateCard: true,
+    });
 }
 
 function isFirstEewReport(eew) {
@@ -751,7 +1263,7 @@ function isEewWarning(eew) {
     return false;
 }
 
-function getEewFirstReportPlayKey(eew) {
+function getEewPlayKey(eew) {
     return [
         eew?.EventID,
         eew?.OriginTime,
@@ -760,46 +1272,150 @@ function getEewFirstReportPlayKey(eew) {
     ].filter(Boolean).join('|');
 }
 
-function playEewSoundForFirstReport(eew) {
+function getEewUpdateKey(eew) {
+    if (!eew || typeof eew !== 'object') return '';
+    return [
+        String(eew.EventID || '').trim(),
+        String(eew.Serial || '').trim(),
+        String(eew.AnnouncedTime || '').trim(),
+        String(eew.MaxIntensity || '').trim(),
+        String(eew.isFinal || '').trim(),
+    ].join('|');
+}
+
+function getDetailScaleUpdateKey(eq) {
+    if (!eq || typeof eq !== 'object') return '';
+    return [
+        String(eq.created_at || '').trim(),
+        String(eq.earthquake?.time || '').trim(),
+        String(eq.earthquake?.hypocenter?.name || '').trim(),
+    ].join('|');
+}
+
+function playEewFirst(eew) {
     if (!isFirstEewReport(eew)) return;
 
-    const key = getEewFirstReportPlayKey(eew);
+    const key = getEewPlayKey(eew);
     if (key && key === lastPlayedEewFirstReportKey) return;
 
     lastPlayedEewFirstReportKey = key || String(Date.now());
     playEewSound(eew);
 }
 
-function maybePlayTestModeEewAnnounceSound() {
-    if (!CONFIG.isTest) return;
-    if (!testModeEewRaw) return;
+function getEewWarnAreaSignature(eew) {
+    if (!Array.isArray(eew?.WarnArea)) return '';
 
-    const announcedIso = parseJmaDateTime(testModeEewRaw.AnnouncedTime);
-    const announcedMs = Date.parse(announcedIso || '');
-    const simulatedNowMs = CONFIG.getSimulatedTime().getTime();
+    const warningAreas = eew.WarnArea
+        .filter((area) => String(area?.Type || '').includes('警報'))
+        .map((area) => [
+            String(area?.Chiiki || ''),
+            String(area?.Shindo1 || ''),
+            String(area?.Shindo2 || ''),
+            String(area?.Type || ''),
+        ].join('|'))
+        .filter(Boolean)
+        .sort();
 
-    if (Number.isFinite(announcedMs) && simulatedNowMs < announcedMs) {
-        return;
-    }
-
-    if (!testEewAnnouncedUiUpdated) {
-        testEewAnnouncedUiUpdated = true;
-        updateData();
-    }
-
-    if (testEewAnnouncedSoundPlayed) return;
-
-    testEewAnnouncedSoundPlayed = true;
-    playEewSoundForFirstReport(testModeEewRaw);
+    return warningAreas.join(';');
 }
 
-function startTestModeEewAnnounceWatcher() {
+function maybePlayEewWarnAreaUpdate(eew) {
+    if (!eew || typeof eew !== 'object') return;
+    if (!isEewWarning(eew)) return;
+
+    const eventKey = String(eew.EventID || eew.OriginTime || eew.AnnouncedTime || '').trim();
+    if (!eventKey) return;
+
+    const signature = getEewWarnAreaSignature(eew);
+    if (!signature) return;
+
+    const prevSignature = eewWarnAreaSignatureByEvent.get(eventKey);
+    if (prevSignature == null) {
+        eewWarnAreaSignatureByEvent.set(eventKey, signature);
+        return;
+    }
+    if (prevSignature === signature) return;
+
+    eewWarnAreaSignatureByEvent.set(eventKey, signature);
+    playEewSound(eew);
+}
+
+function getTestEewTimelineIndexByTime(nowMs) {
+    if (!Array.isArray(testModeEewTimeline) || testModeEewTimeline.length === 0) return -1;
+
+    let activeIndex = -1;
+    for (let i = 0; i < testModeEewTimeline.length; i++) {
+        const item = testModeEewTimeline[i];
+        const announcedMs = Number(item?.announcedMs);
+        if (!Number.isFinite(announcedMs)) {
+            if (activeIndex < 0) activeIndex = i;
+            continue;
+        }
+        if (nowMs >= announcedMs) {
+            activeIndex = i;
+            continue;
+        }
+        break;
+    }
+
+    return activeIndex;
+}
+
+function syncTestEewTimeline(options = {}) {
+    if (!CONFIG.isTest) return false;
+
+    const currentState = getEewState(EEW_SOURCE.TEST);
+    const timeline = Array.isArray(currentState.timeline) ? currentState.timeline : [];
+
+    if (timeline.length === 0) {
+        const wasActive = currentState.index !== -1 || currentState.raw != null || currentState.eq != null;
+        setEewState(EEW_SOURCE.TEST, { raw: null, eq: null, index: -1 });
+        if (wasActive) {
+            updateEewCard(getCurrentEewRaw());
+        }
+        return wasActive;
+    }
+
+    const simulatedNowMs = CONFIG.getSimulatedTime().getTime();
+    const nextIndex = getTestEewTimelineIndexByTime(simulatedNowMs);
+    if (nextIndex === currentState.index) return false;
+
+    setEewState(EEW_SOURCE.TEST, { index: nextIndex });
+    if (nextIndex < 0) {
+        clearEewState(EEW_SOURCE.TEST, { hideCard: true });
+        return true;
+    }
+
+    const currentItem = timeline[nextIndex] || {};
+    setEewState(EEW_SOURCE.TEST, {
+        raw: currentItem.raw || null,
+        eq: currentItem.eq || null,
+        index: nextIndex,
+    });
+
+    if (CONFIG.isTest) {
+        updateEewCard(getCurrentEewRaw());
+    }
+
+    if (options.playSound !== false && currentItem.raw) {
+        playEewFirst(currentItem.raw);
+        maybePlayEewWarnAreaUpdate(currentItem.raw);
+    }
+
+    return true;
+}
+
+function startTestEewWatcher() {
     if (!CONFIG.isTest) return;
     if (testEewAnnounceTimerId != null) return;
 
-    maybePlayTestModeEewAnnounceSound();
+    if (syncTestEewTimeline({ playSound: false })) {
+        updateData();
+    }
     testEewAnnounceTimerId = setInterval(() => {
-        maybePlayTestModeEewAnnounceSound();
+        if (syncTestEewTimeline({ playSound: true })) {
+            updateData();
+        }
     }, TEST_EEW_ANNOUNCE_POLL_MS);
 }
 
@@ -808,7 +1424,7 @@ function parseJmaDateTime(value) {
     return value.replace(/\//g, '-').replace(' ', 'T');
 }
 
-function normalizeTestEewTimeline(eew) {
+function normalizeTestEew(eew) {
     if (!eew || typeof eew !== 'object') return eew;
 
     const normalized = { ...eew };
@@ -850,40 +1466,89 @@ function isFinalReportExpired(eew, nowMs = Date.now()) {
     return nowMs - announcedMs >= EEW_HTTP_CONFIG.finalHideAfterMs;
 }
 
+function normalizeEewPayload(raw) {
+    if (!raw) return null;
+
+    if (Array.isArray(raw)) {
+        for (const item of raw) {
+            const normalized = normalizeEewPayload(item);
+            if (normalized) return normalized;
+        }
+        return null;
+    }
+
+    if (typeof raw !== 'object') return null;
+
+    if (raw.type === 'jma_eew') return raw;
+
+    const candidates = [raw.data, raw.result, raw.eew, raw.payload];
+    for (const candidate of candidates) {
+        const normalized = normalizeEewPayload(candidate);
+        if (normalized) return normalized;
+    }
+
+    const hasCoreFields = Boolean(raw.EventID || raw.Serial || raw.OriginTime || raw.AnnouncedTime || raw.Hypocenter);
+    if (!hasCoreFields) return null;
+
+    return {
+        type: 'jma_eew',
+        ...raw,
+    };
+}
+
+function shouldDisplayEew(eew, nowMs = Date.now()) {
+    const normalized = normalizeEewPayload(eew);
+    if (!normalized) return false;
+    eew = normalized;
+    if (eew.isCancel) return false;
+    if (isFinalReportExpired(eew, nowMs)) return false;
+    return true;
+}
+
+async function fetchInitialLiveEewSnapshot() {
+    const directUrl = EEW_HTTP_CONFIG.snapshotUrl;
+    const candidates = [directUrl];
+    if (EEW_HTTP_CONFIG.snapshotProxyPrefix) {
+        const proxyUrl = `${EEW_HTTP_CONFIG.snapshotProxyPrefix}${encodeURIComponent(directUrl)}`;
+        candidates.push(proxyUrl);
+    }
+
+    for (const url of candidates) {
+        try {
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) continue;
+
+            const data = await response.json();
+            return data;
+        } catch {
+            // Try next candidate.
+        }
+    }
+
+    return null;
+}
+
 async function loadInitialLiveEewSnapshot() {
     try {
-        const response = await fetch(EEW_HTTP_CONFIG.snapshotUrl, { cache: 'no-store' });
-        if (!response.ok) return;
-
-        const data = await response.json();
-        if (!data || data.type !== 'jma_eew' || data.isCancel) {
-            clearLiveEewDisplay();
-            return;
-        }
-
-        if (isFinalReportExpired(data)) {
-            clearLiveEewDisplay();
-            return;
-        }
-
-        liveEewRaw = data;
-        const eq = convertTestEewToDetailScale(data);
-        if (!eq) return;
-
-        liveEewEq = eq;
-        renderEarthquakeOnMap(eq, { autoMove: false });
-        updateEewCard(liveEewRaw);
+        const snapshot = await fetchInitialLiveEewSnapshot();
+        const applied = applyEewUpdate(EEW_SOURCE.LIVE, snapshot, {
+            autoMove: false,
+            playSound: false,
+            clearWarnAreaSignature: true,
+            updateCard: true,
+        });
+        if (!applied) return;
 
         // 最終報から5分以内のスナップショットはページ表示時に通知音を鳴らす。
-        if (data.isFinal) {
-            playEewSound(data);
+        if (applied.raw.isFinal) {
+            playEewSound(applied.raw);
         }
     } catch (error) {
         console.warn('[eew] Initial snapshot load failed', error);
     }
 }
 
-function convertIntensityToScaleCode(maxIntensity) {
+function intensityToScale(maxIntensity) {
     const map = {
         '1': 10,
         '2': 20,
@@ -905,7 +1570,7 @@ function convertIntensityToScaleCode(maxIntensity) {
     return map[key] ?? -1;
 }
 
-function convertTestEewToDetailScale(eew) {
+function testEewToDetail(eew) {
     if (!eew) return null;
 
     const time = parseJmaDateTime(eew.OriginTime) || new Date().toISOString();
@@ -921,7 +1586,7 @@ function convertTestEewToDetailScale(eew) {
         },
         earthquake: {
             time,
-            maxScale: convertIntensityToScaleCode(eew.MaxIntensity),
+            maxScale: intensityToScale(eew.MaxIntensity),
             domesticTsunami: 'Unknown',
             hypocenter: {
                 name: eew.Hypocenter || '不明',
@@ -933,11 +1598,11 @@ function convertTestEewToDetailScale(eew) {
         },
         created_at: announced,
         points: [],
-        areaScales: convertWarnAreaToAreaScales(eew.WarnArea),
+        areaScales: warnAreaToScales(eew.WarnArea),
     };
 }
 
-function convertWarnAreaToAreaScales(warnArea) {
+function warnAreaToScales(warnArea) {
     if (!Array.isArray(warnArea)) return [];
 
     const areaScaleMap = {};
@@ -949,7 +1614,7 @@ function convertWarnAreaToAreaScales(warnArea) {
         const areaCode = AreaNameToCode(areaName);
         if (!areaCode) return;
 
-        const scale = convertIntensityToScaleCode(area?.Shindo1);
+        const scale = intensityToScale(area?.Shindo1);
         if (!Number.isFinite(scale) || scale < 0) return;
 
         if (!areaScaleMap[areaCode] || areaScaleMap[areaCode] < scale) {
@@ -996,14 +1661,27 @@ function getEarthquakeLatLngs(eq) {
 function getAreaBoundsByCode(areaCode) {
     if (!japan_data || !Array.isArray(japan_data.features)) return null;
 
-    const arrayNum = AreaCode.indexOf(areaCode);
-    if (arrayNum === -1) return null;
+    if (areaBoundsCache.has(areaCode)) {
+        return areaBoundsCache.get(areaCode);
+    }
+
+    ensureAreaLookupMaps();
+    const arrayNum = areaCodeToIndexMap.get(areaCode);
+    if (!Number.isInteger(arrayNum) || arrayNum < 0) {
+        areaBoundsCache.set(areaCode, null);
+        return null;
+    }
 
     const feature = japan_data.features[arrayNum];
-    if (!feature) return null;
+    if (!feature) {
+        areaBoundsCache.set(areaCode, null);
+        return null;
+    }
 
     const bounds = L.geoJSON(feature).getBounds();
-    return bounds.isValid() ? bounds : null;
+    const validBounds = bounds.isValid() ? bounds : null;
+    areaBoundsCache.set(areaCode, validBounds);
+    return validBounds;
 }
 
 function getEarthquakeBounds(eq) {
@@ -1051,6 +1729,7 @@ function moveCameraToEarthquake(eq) {
 function renderEarthquakeOnMap(eq, options = {}) {
     if (!eq || !eq.earthquake) return;
     const { autoMove = false } = options;
+    currentDisplayedEarthquake = eq;
 
     const { latitude, longitude } = eq.earthquake.hypocenter || {};
     const lat = Number(latitude);
@@ -1067,13 +1746,8 @@ function renderEarthquakeOnMap(eq, options = {}) {
         updateMarker(hypoLatLng, hypoIconImage);
     }
 
-    if (isHistoricalEqVisualsSuppressedByKyoshin) {
-        clearHistoricalEarthquakeVisuals();
-        renderActiveEewForecastFillOnly();
-    } else {
-        drawShindoPoints(eq.points, eq.areaScales);
-    }
-    if (shouldRenderWaveFrontForEq(eq)) {
+    drawShindoPoints(eq.points, eq.areaScales);
+    if (shouldRenderWaveForEq(eq)) {
         setWaveFrontEarthquake(eq);
     } else {
         waveCurrentEq = null;
@@ -1086,26 +1760,15 @@ function renderEarthquakeOnMap(eq, options = {}) {
 }
 
 function getActiveEewEq() {
-    if (!CONFIG.isTest) return liveEewEq;
-    if (!isTestEewAnnouncedNow()) return null;
-    return testModeEewEq;
+    return getCurrentEewEq();
 }
 
 function getActiveEewRaw() {
-    if (!CONFIG.isTest) return liveEewRaw;
-    if (!isTestEewAnnouncedNow()) return null;
-    return testModeEewRaw;
-}
-
-function isTestEewAnnouncedNow() {
-    if (!CONFIG.isTest) return true;
-    if (!testModeEewRaw) return false;
-
-    const announcedIso = parseJmaDateTime(testModeEewRaw.AnnouncedTime);
-    const announcedMs = Date.parse(announcedIso || '');
-    if (!Number.isFinite(announcedMs)) return true;
-
-    return CONFIG.getSimulatedTime().getTime() >= announcedMs;
+    const activeRaw = getCurrentEewRaw();
+    if (!shouldDisplayEew(activeRaw, CONFIG.isTest ? CONFIG.getSimulatedTime().getTime() : Date.now())) {
+        return null;
+    }
+    return activeRaw;
 }
 
 function isEewIssuedNow() {
@@ -1118,7 +1781,7 @@ function isEewIssuedNow() {
     return true;
 }
 
-function isViewingPastEarthquakeDuringEew() {
+function isPastEqViewDuringEew() {
     if (!isEewIssuedNow()) return false;
     if (!selectedEarthquakeKey) return false;
 
@@ -1129,7 +1792,7 @@ function isViewingPastEarthquakeDuringEew() {
     return selectedEarthquakeKey !== activeEewKey;
 }
 
-function shouldRenderWaveFrontForEq(eq) {
+function shouldRenderWaveForEq(eq) {
     const activeEewEq = getActiveEewEq();
     if (!activeEewEq || !eq) return false;
     return getEarthquakeKey(activeEewEq) === getEarthquakeKey(eq);
@@ -1255,7 +1918,7 @@ function updateWaveFronts(nowMs) {
         return;
     }
 
-    const originMs = getEarthquakeOriginMillis(waveCurrentEq);
+    const originMs = getEqOriginMs(waveCurrentEq);
     if (!Number.isFinite(originMs)) {
         hideWaveFrontLayers();
         return;
@@ -1268,17 +1931,17 @@ function updateWaveFronts(nowMs) {
     const activeEewRaw = getActiveEewRaw();
     const isFinalReport = !!(activeEewRaw && activeEewRaw.isFinal);
     if (isFinalReport && isFinalReportExpired(activeEewRaw, nowForWaveMs)) {
-        clearLiveEewDisplay();
+        clearCurrentEewDisplay();
         return;
     }
 
-    let pDistanceKm = getDistanceForElapsedSec('p', depthKm, elapsedSec);
-    let sDistanceKm = getDistanceForElapsedSec('s', depthKm, elapsedSec);
+    let pDistanceKm = getDistForSec('p', depthKm, elapsedSec);
+    let sDistanceKm = getDistForSec('s', depthKm, elapsedSec);
     const isPMaxReached = isPWaveMaxReached(pDistanceKm);
 
     if (isPMaxReached) {
-        pDistanceKm = getDistanceAfterPWaveMax('p', depthKm, elapsedSec, pDistanceKm);
-        sDistanceKm = getDistanceAfterPWaveMax('s', depthKm, elapsedSec, sDistanceKm);
+        pDistanceKm = getDistAfterPMax('p', depthKm, elapsedSec, pDistanceKm);
+        sDistanceKm = getDistAfterPMax('s', depthKm, elapsedSec, sDistanceKm);
     }
 
     const center = L.latLng(lat, lon);
@@ -1320,17 +1983,16 @@ function isPWaveMaxReached(pDistanceKm) {
     return Number.isFinite(pDistanceKm) && pDistanceKm >= maxDistanceKm - marginKm;
 }
 
-function clearLiveEewDisplay() {
-    liveEewEq = null;
-    liveEewRaw = null;
-    testModeEewEq = null;
-    testModeEewRaw = null;
+function clearCurrentEewDisplay() {
+    clearEewState(getCurrentEewSource(), {
+        clearWarnAreaSignature: true,
+        hideCard: true,
+    });
     waveCurrentEq = null;
     hideWaveFrontLayers();
-    updateEewCard(null);
 }
 
-function getEarthquakeOriginMillis(eq) {
+function getEqOriginMs(eq) {
     const time = eq?.earthquake?.time;
     if (!time) return NaN;
     return Date.parse(time);
@@ -1342,23 +2004,23 @@ function parseDepthKm(depthRaw) {
     return WAVE_FRONT_CONFIG.defaultDepthKm;
 }
 
-function getDistanceForElapsedSec(waveType, depthKm, elapsedSec) {
+function getDistForSec(waveType, depthKm, elapsedSec) {
     if (jma2001TravelTable) {
-        const distanceFromTable = invertTravelTimeToDistance(jma2001TravelTable, waveType, depthKm, elapsedSec);
+        const distanceFromTable = invertTravelDist(jma2001TravelTable, waveType, depthKm, elapsedSec);
         if (Number.isFinite(distanceFromTable)) {
             return distanceFromTable;
         }
     }
 
-    return getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec);
+    return getDistByFallback(waveType, depthKm, elapsedSec);
 }
 
-function getDistanceAfterPWaveMax(waveType, depthKm, elapsedSec, currentDistanceKm) {
+function getDistAfterPMax(waveType, depthKm, elapsedSec, currentDistanceKm) {
     const maxInfo = getWaveMaxDistanceInfo(waveType, depthKm);
     if (!maxInfo) {
         return Number.isFinite(currentDistanceKm)
             ? currentDistanceKm
-            : getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec);
+            : getDistByFallback(waveType, depthKm, elapsedSec);
     }
 
     if (elapsedSec <= maxInfo.maxTravelSec) {
@@ -1387,7 +2049,7 @@ function getWaveMaxDistanceInfo(waveType, depthKm) {
     return { maxDistanceKm, maxTravelSec };
 }
 
-function getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec) {
+function getDistByFallback(waveType, depthKm, elapsedSec) {
     const velocity = waveType === 'p'
         ? WAVE_FRONT_CONFIG.fallbackPVelocityKmS
         : WAVE_FRONT_CONFIG.fallbackSVelocityKmS;
@@ -1403,7 +2065,7 @@ function getDistanceByFallbackVelocity(waveType, depthKm, elapsedSec) {
     return Math.sqrt(epicentralSquared);
 }
 
-function invertTravelTimeToDistance(table, waveType, depthKm, elapsedSec) {
+function invertTravelDist(table, waveType, depthKm, elapsedSec) {
     if (!table || !Number.isFinite(elapsedSec) || elapsedSec < 0) return null;
 
     const distances = table.distances;
@@ -1488,8 +2150,7 @@ function drawShindoPoints(points, areaScales = []) {
     if (!JMAPointsJson || !japan_data || !shindoCanvasLayer) return;
 
     const canvasPoints = [];
-    filled_list = {};
-    shindoFilledLayer.clearLayers();
+    const nextFilledList = {};
 
     if (Array.isArray(points)) {
         points.forEach(element => {
@@ -1511,8 +2172,8 @@ function drawShindoPoints(points, areaScales = []) {
 
             if (station.area?.name) {
                 const areaCode = AreaNameToCode(station.area.name);
-                if (areaCode != null && (!filled_list[areaCode] || filled_list[areaCode] < scale)) {
-                    filled_list[areaCode] = scale;
+                if (areaCode != null && (!nextFilledList[areaCode] || nextFilledList[areaCode] < scale)) {
+                    nextFilledList[areaCode] = scale;
                 }
             }
         });
@@ -1524,8 +2185,8 @@ function drawShindoPoints(points, areaScales = []) {
             const scale = Number(item?.scale);
             if (!areaCode || !Number.isFinite(scale) || scale < 0) return;
 
-            if (!filled_list[areaCode] || filled_list[areaCode] < scale) {
-                filled_list[areaCode] = scale;
+            if (!nextFilledList[areaCode] || nextFilledList[areaCode] < scale) {
+                nextFilledList[areaCode] = scale;
             }
         });
     }
@@ -1533,47 +2194,47 @@ function drawShindoPoints(points, areaScales = []) {
     canvasPoints.sort((a, b) => a.scale - b.scale);
 
     shindoCanvasLayer.setPoints(canvasPoints);
-
-    for (const areaCode in filled_list) {
-        FillPolygon(areaCode, getShindoFillColor(filled_list[areaCode]));
-    }
+    updateShindoFillLayers(nextFilledList);
+    filled_list = nextFilledList;
 }
 
-function clearHistoricalEarthquakeVisuals() {
-    filled_list = {};
-    shindoFilledLayer.clearLayers();
-    if (shindoCanvasLayer) {
-        shindoCanvasLayer.setPoints([]);
-    }
-}
+function updateShindoFillLayers(nextFilledList) {
+    const nextActiveAreaCodes = new Set(Object.keys(nextFilledList));
 
-function renderActiveEewForecastFillOnly() {
-    const activeEewEq = getActiveEewEq();
-    const areaScales = activeEewEq?.areaScales;
-    if (!Array.isArray(areaScales) || areaScales.length === 0) return;
+    shindoFillState.activeAreaCodes.forEach((areaCode) => {
+        if (nextActiveAreaCodes.has(areaCode)) return;
+        const layer = shindoFillState.layerByAreaCode.get(areaCode);
+        if (!layer) return;
+        layer.setStyle({
+            color: '#d1d1d1',
+            weight: 0,
+            opacity: 0,
+            fillOpacity: 0,
+        });
+        delete shindoFillState.colorByAreaCode[areaCode];
+    });
 
-    drawShindoPoints([], areaScales);
-}
+    nextActiveAreaCodes.forEach((areaCode) => {
+        const scale = nextFilledList[areaCode];
+        const fillColor = getShindoFillColor(scale);
+        const prevFillColor = shindoFillState.colorByAreaCode[areaCode];
+        const layer = FillPolygon(areaCode, fillColor);
+        if (!layer) return;
 
-function shouldSuppressHistoricalEqVisualsByKyoshin(event) {
-    if (!event) return false;
-    return event.pointIds.size >= KYOSHIN_DETECT_CONFIG.tentativeEventMinPoints;
-}
+        const wasActive = shindoFillState.activeAreaCodes.has(areaCode);
+        if (!wasActive || prevFillColor !== fillColor) {
+            layer.setStyle({
+                color: '#d1d1d1',
+                weight: 0.2,
+                opacity: 1,
+                fillColor,
+                fillOpacity: 1,
+            });
+            shindoFillState.colorByAreaCode[areaCode] = fillColor;
+        }
+    });
 
-function syncHistoricalEqVisualsSuppression(event) {
-    const shouldSuppress = shouldSuppressHistoricalEqVisualsByKyoshin(event);
-
-    if (shouldSuppress) {
-        isHistoricalEqVisualsSuppressedByKyoshin = true;
-        clearHistoricalEarthquakeVisuals();
-        renderActiveEewForecastFillOnly();
-        return;
-    }
-
-    if (isHistoricalEqVisualsSuppressedByKyoshin) {
-        isHistoricalEqVisualsSuppressedByKyoshin = false;
-        updateData();
-    }
+    shindoFillState.activeAreaCodes = nextActiveAreaCodes;
 }
 
 function getShindoFillColor(scale) {
@@ -1583,15 +2244,20 @@ function getShindoFillColor(scale) {
 function FillPolygon(area_Code, fillColor) {
     if (!japan_data) return;
 
-    const array_Num = AreaCode.indexOf(area_Code);
-    if (array_Num === -1) return;
+    if (shindoFillState.layerByAreaCode.has(area_Code)) {
+        return shindoFillState.layerByAreaCode.get(area_Code);
+    }
+
+    ensureAreaLookupMaps();
+    const array_Num = areaCodeToIndexMap.get(area_Code);
+    if (!Number.isInteger(array_Num) || array_Num < 0) return null;
 
     const style = {
         "color": "#d1d1d1",
-        "weight": 0.2,
-        "opacity": 1,
+        "weight": 0,
+        "opacity": 0,
         "fillColor": fillColor,
-        "fillOpacity": 1,
+        "fillOpacity": 0,
     };
 
     const data_japan = japan_data["features"][array_Num];
@@ -1604,15 +2270,66 @@ function FillPolygon(area_Code, fillColor) {
     });
 
     shindoFilledLayer.addLayer(filledLayer);
+    shindoFillState.layerByAreaCode.set(area_Code, filledLayer);
+    return filledLayer;
+}
+
+function scheduleShindoFillPrewarm() {
+    if (shindoFillPrewarmStarted || shindoFillPrewarmCompleted) return;
+    if (!japan_data || !Array.isArray(AreaCode) || AreaCode.length === 0) return;
+
+    shindoFillPrewarmStarted = true;
+    ensureAreaLookupMaps();
+
+    const uniqueAreaCodes = Array.from(new Set(AreaCode.filter(Boolean)));
+    const batchSize = 24;
+    let cursor = 0;
+
+    const runChunk = () => {
+        const end = Math.min(cursor + batchSize, uniqueAreaCodes.length);
+        for (let i = cursor; i < end; i += 1) {
+            const areaCode = uniqueAreaCodes[i];
+            FillPolygon(areaCode, '#888888');
+        }
+        cursor = end;
+
+        if (cursor >= uniqueAreaCodes.length) {
+            shindoFillPrewarmCompleted = true;
+            return;
+        }
+
+        setTimeout(runChunk, 0);
+    };
+
+    setTimeout(runChunk, 0);
+}
+
+function ensureAreaLookupMaps() {
+    if (areaCodeToIndexMap.size === 0 && Array.isArray(AreaCode)) {
+        AreaCode.forEach((code, index) => {
+            if (code == null) return;
+            if (!areaCodeToIndexMap.has(code)) {
+                areaCodeToIndexMap.set(code, index);
+            }
+        });
+    }
+
+    if (areaNameToCodeMap.size === 0 && Array.isArray(AreaName) && Array.isArray(AreaCode)) {
+        const length = Math.min(AreaName.length, AreaCode.length);
+        for (let i = 0; i < length; i += 1) {
+            const name = AreaName[i];
+            const code = AreaCode[i];
+            if (!name || !code) continue;
+            if (!areaNameToCodeMap.has(name)) {
+                areaNameToCodeMap.set(name, code);
+            }
+        }
+    }
 }
 
 function AreaNameToCode(Name) {
-    const array_Num = AreaName.indexOf(Name);
-    return AreaCode[array_Num];
-}
-function AreaCodeToName(code) {
-    const array_Num = AreaCode.indexOf(code);
-    return AreaName[array_Num];
+    ensureAreaLookupMaps();
+    return areaNameToCodeMap.get(Name);
 }
 
 function updateMarker(hypoLatLng, hypoIconImage) {
@@ -1728,7 +2445,7 @@ function updateEewCard(eew) {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
 
-    const eewScaleCode = convertIntensityToScaleCode(eew.MaxIntensity);
+    const eewScaleCode = intensityToScale(eew.MaxIntensity);
     const eewScaleText = scaleMap[String(eewScaleCode)] || String(eew.MaxIntensity || '不明');
     const eewBgClass = scaleClassMap[eewScaleText] || '';
     const match = eewScaleText.match(/^(\d)([^\d]*)$/);
@@ -1743,7 +2460,17 @@ function updateEewCard(eew) {
     card.querySelector('.eew-card_date').textContent = `${month}/${day} ${hours}:${minutes}ごろ発生`;
     card.querySelector('.eew-card_location').textContent = eew.Hypocenter || '不明';
     card.querySelector('.eew-card_comment').textContent = 'で地震';
-    card.querySelector('.eew-card_maxscale-txt').innerHTML = `${number}<span class="scale_modifier">${modifier}</span>`;
+    const eewScaleTxt = card.querySelector('.eew-card_maxscale-txt');
+    const eewScaleLabel = card.querySelector('.eew-card_maxscale-label');
+    eewScaleTxt.innerHTML = `${number}<span class="scale_modifier">${modifier}</span>`;
+
+    if (number === "3" || number === "4") {
+        eewScaleTxt.style.color = "#000";
+        eewScaleLabel.style.color = "#000";
+    } else {
+        eewScaleTxt.style.color = "";
+        eewScaleLabel.style.color = "";
+    }
 
     const mag = Number(eew.Magunitude);
     const depth = Number(eew.Depth);
@@ -1984,6 +2711,177 @@ eewWarnAudio.volume = EewWarnSoundConfig.volume;
 const shakeAudio = new Audio(ShakeSoundConfig.src);
 shakeAudio.volume = ShakeSoundConfig.volume;
 
+function unlockAudioPlayback() {
+    const targets = [alertAudio, eewAudio, eewWarnAudio, shakeAudio];
+    targets.forEach((audio) => {
+        const originalMuted = audio.muted;
+        const originalVolume = audio.volume;
+        audio.muted = true;
+        audio.volume = 0;
+        audio.currentTime = 0;
+
+        const playResult = audio.play();
+        if (playResult && typeof playResult.then === 'function') {
+            playResult
+                .then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                })
+                .catch(() => {
+                    // Permission may still be blocked depending on browser policy.
+                })
+                .finally(() => {
+                    audio.muted = originalMuted;
+                    audio.volume = originalVolume;
+                });
+            return;
+        }
+
+        audio.muted = originalMuted;
+        audio.volume = originalVolume;
+    });
+}
+
+function promptInitialAudioPermission() {
+    const modal = document.getElementById('audio-permission-modal');
+    const backdrop = document.getElementById('audio-permission-backdrop');
+    const allowBtn = document.getElementById('audio-permission-allow-btn');
+    const cancelBtn = document.getElementById('audio-permission-cancel-btn');
+    if (!modal || !allowBtn || !cancelBtn || !backdrop) return;
+
+    const closeModal = () => {
+        modal.hidden = true;
+    };
+
+    if (!modal.dataset.bound) {
+        allowBtn.addEventListener('click', () => {
+            userInteracted = true;
+            unlockAudioPlayback();
+            closeModal();
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            closeModal();
+        });
+
+        backdrop.addEventListener('click', () => {
+            closeModal();
+        });
+
+        modal.dataset.bound = '1';
+    }
+
+    modal.hidden = false;
+}
+
+function promptUsageNotice(onClose) {
+    const modal = document.getElementById('usage-notice-modal');
+    const backdrop = document.getElementById('usage-notice-backdrop');
+    const okBtn = document.getElementById('usage-notice-ok-btn');
+    if (!modal || !backdrop || !okBtn) {
+        if (typeof onClose === 'function') onClose();
+        return;
+    }
+
+    const closeModal = () => {
+        modal.hidden = true;
+        if (typeof onClose === 'function') onClose();
+    };
+
+    if (!modal.dataset.bound) {
+        okBtn.addEventListener('click', closeModal);
+        modal.dataset.bound = '1';
+    }
+
+    modal.hidden = false;
+}
+
+function initializeCreditsDialog() {
+    const creditsButton = document.getElementById('credits-button');
+    const modal = document.getElementById('credits-modal');
+    const backdrop = document.getElementById('credits-backdrop');
+    const closeButton = document.getElementById('credits-close-btn');
+
+    if (!creditsButton || !modal || !backdrop || !closeButton) return;
+
+    const closeModal = () => {
+        modal.hidden = true;
+    };
+
+    if (!modal.dataset.bound) {
+        creditsButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            modal.hidden = false;
+        });
+
+        closeButton.addEventListener('click', closeModal);
+        backdrop.addEventListener('click', closeModal);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.hidden) {
+                closeModal();
+            }
+        });
+
+        modal.dataset.bound = '1';
+    }
+}
+
+function initializeContactDialog() {
+    const contactButton = document.getElementById('contact-button');
+    const modal = document.getElementById('contact-modal');
+    const backdrop = document.getElementById('contact-backdrop');
+    const closeButton = document.getElementById('contact-close-btn');
+    const githubIssueButton = document.getElementById('contact-github-issue-btn');
+    const googleFormButton = document.getElementById('contact-google-form-btn');
+
+    if (!contactButton || !modal || !backdrop || !closeButton || !githubIssueButton || !googleFormButton) return;
+
+    const closeModal = () => {
+        modal.hidden = true;
+    };
+
+    const openContactUrl = (url) => {
+        window.open(url, '_blank', 'noopener');
+        closeModal();
+    };
+
+    if (!modal.dataset.bound) {
+        contactButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            modal.hidden = false;
+        });
+
+        githubIssueButton.addEventListener('click', () => {
+            openContactUrl('https://github.com/SQLab-dev/EQFast-dev/issues');
+        });
+
+        googleFormButton.addEventListener('click', () => {
+            openContactUrl('https://forms.gle/V1J5r4MjhNfB1Tz26');
+        });
+
+        closeButton.addEventListener('click', closeModal);
+        backdrop.addEventListener('click', closeModal);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.hidden) {
+                closeModal();
+            }
+        });
+
+        modal.dataset.bound = '1';
+    }
+}
+
+setTimeout(() => {
+    promptUsageNotice(() => {
+        promptInitialAudioPermission();
+    });
+}, 300);
+
+initializeCreditsDialog();
+initializeContactDialog();
+
 function playAlertSound() {
     if (!SoundConfig.enabled || !SoundConfig.earthquakeEnabled || !userInteracted) return;
     alertAudio.currentTime = 0;
@@ -2200,6 +3098,7 @@ async function updateImages(latestTime, points) {
     const yyyymmdd = `${t.getFullYear()}${pad(t.getMonth()+1)}${pad(t.getDate())}`;
     const ts = yyyymmdd + pad(t.getHours()) + pad(t.getMinutes()) + pad(t.getSeconds());
 
+    // K-MONI endpoint is currently HTTP-only.
     const shindoUrl = `http://www.kmoni.bosai.go.jp/data/map_img/RealTimeImg/jma_s/${yyyymmdd}/${ts}.jma_s.gif`;
     const pgaUrl    = `http://www.kmoni.bosai.go.jp/data/map_img/RealTimeImg/acmap_s/${yyyymmdd}/${ts}.acmap_s.gif`;
 
@@ -2212,8 +3111,8 @@ async function updateImages(latestTime, points) {
 
     for (const { x, y, suspended } of points) {
         if (suspended || y >= shindoData.height || x >= shindoData.width) {
-            shindoResult.push(7.0);
-            pgaResult.push(9999.9);
+            shindoResult.push(null);
+            pgaResult.push(null);
             colorResult.push(null);
             pgaColorResult.push(null);
             continue;
@@ -2224,12 +3123,16 @@ async function updateImages(latestTime, points) {
         const sp = color2position(sc.r, sc.g, sc.b);
         const pp = color2position(pc.r, pc.g, pc.b);
 
-        colorResult.push(`rgb(${sc.r},${sc.g},${sc.b})`);
-        pgaColorResult.push(`rgb(${pc.r},${pc.g},${pc.b})`)
-
         if (sp == null || pp == null) {
-            shindoResult.push(7.0); pgaResult.push(9999.9); continue;
+            shindoResult.push(null);
+            pgaResult.push(null);
+            colorResult.push(null);
+            pgaColorResult.push(null);
+            continue;
         }
+
+        colorResult.push(`rgb(${sc.r},${sc.g},${sc.b})`);
+        pgaColorResult.push(`rgb(${pc.r},${pc.g},${pc.b})`);
 
         let shindo = Math.round((10.0 * sp - 3.0) * 10) / 10;
         let pga    = Math.round((10 ** (5.0 * pp - 2.0)) * 10) / 10;
@@ -2251,9 +3154,9 @@ async function updateImagesFromTestData(points) {
     points.forEach((point) => {
         const code = String(point.code || '').trim();
         if (!code || point.suspended) return;
-        queueKyoshinTestSeriesLoad(code);
+        queueKyoshinSeries(code);
     });
-    pumpKyoshinTestSeriesQueue();
+    pumpKyoshinQueue();
 
     const shindoResult = [];
     const pgaResult = [];
@@ -2280,7 +3183,7 @@ async function updateImagesFromTestData(points) {
             continue;
         }
 
-        const sampleIndex = getKyoshinSeriesSampleIndex(series, targetTimeMs);
+        const sampleIndex = getKyoshinSampleIndex(series, targetTimeMs);
         if (!Number.isInteger(sampleIndex) || sampleIndex < 0 || sampleIndex >= series.pgaSamples.length) {
             shindoResult.push(null);
             pgaResult.push(null);
@@ -2313,7 +3216,7 @@ async function updateImagesFromTestData(points) {
 }
 
 const KYOSHIN_TEST_DATA_CONFIG = {
-    basePath: `${getReplayEventBasePath(CONFIG.testEventId)}/kyoshin`,
+    basePath: `${getReplayBasePath(CONFIG.testEventId)}/kyoshin`,
     maxConcurrentLoads: 6,
 };
 
@@ -2329,7 +3232,7 @@ const kyoshinTestDataState = {
     },
 };
 
-function queueKyoshinTestSeriesLoad(code) {
+function queueKyoshinSeries(code) {
     if (!code) return;
     if (kyoshinTestDataState.stationSeriesByCode.has(code)) return;
     if (kyoshinTestDataState.loadingCodes.has(code)) return;
@@ -2337,7 +3240,7 @@ function queueKyoshinTestSeriesLoad(code) {
     kyoshinTestDataState.queue.push(code);
 }
 
-function pumpKyoshinTestSeriesQueue() {
+function pumpKyoshinQueue() {
     while (
         kyoshinTestDataState.activeLoads < KYOSHIN_TEST_DATA_CONFIG.maxConcurrentLoads
         && kyoshinTestDataState.queue.length > 0
@@ -2351,7 +3254,7 @@ function pumpKyoshinTestSeriesQueue() {
             .finally(() => {
                 kyoshinTestDataState.loadingCodes.delete(code);
                 kyoshinTestDataState.activeLoads = Math.max(0, kyoshinTestDataState.activeLoads - 1);
-                pumpKyoshinTestSeriesQueue();
+                pumpKyoshinQueue();
             });
     }
 }
@@ -2383,7 +3286,7 @@ async function loadKyoshinTestSeriesByCode(code) {
             if (!response.ok) continue;
 
             const json = await response.json();
-            const series = normalizePrecomputedKyoshinSeries(json);
+            const series = normalizeKyoshinSeries(json);
             if (series && Array.isArray(series.pgaSamples) && series.pgaSamples.length > 0) {
                 kyoshinTestDataState.stationSeriesByCode.set(code, series);
                 return series;
@@ -2435,7 +3338,7 @@ async function loadKyoshinAvailableCodeSet(path) {
     }
 }
 
-function normalizePrecomputedKyoshinSeries(source) {
+function normalizeKyoshinSeries(source) {
     if (!source || typeof source !== 'object') return null;
 
     const pgaSamples = Array.isArray(source.pgaSamples) ? source.pgaSamples.map(Number) : null;
@@ -2464,68 +3367,7 @@ function normalizePrecomputedKyoshinSeries(source) {
     };
 }
 
-function parseKyoshinStationCsv(csvText) {
-    if (!csvText) return null;
-
-    const lines = csvText.split(/\r?\n/);
-    const dataStartIndex = lines.findIndex((line) => line.startsWith('#Time,RelativeTime(s),N-S(gal),E-W(gal),U-D(gal)'));
-    if (dataStartIndex < 0) return null;
-
-    let samplingFrequencyHz = 100;
-    const nsSamples = [];
-    const ewSamples = [];
-    const udSamples = [];
-    const pgaSamples = [];
-    let startTimeMs = NaN;
-
-    const samplingHeaderIndex = lines.findIndex((line) => line.startsWith('#SamplingFrequency(Hz)'));
-    if (samplingHeaderIndex >= 0 && lines[samplingHeaderIndex + 1]) {
-        const parsedHz = Number(String(lines[samplingHeaderIndex + 1]).replace('#', '').trim());
-        if (Number.isFinite(parsedHz) && parsedHz > 0) {
-            samplingFrequencyHz = parsedHz;
-        }
-    }
-
-    for (let i = dataStartIndex + 1; i < lines.length; i += 1) {
-        const raw = lines[i].trim();
-        if (!raw || raw.startsWith('#')) continue;
-
-        const cols = raw.split(',');
-        if (cols.length < 5) continue;
-
-        const timestampMs = Date.parse(String(cols[0] || '').replace(/\//g, '-').replace(' ', 'T'));
-        const ns = Number(cols[2]);
-        const ew = Number(cols[3]);
-        const ud = Number(cols[4]);
-        if (!Number.isFinite(timestampMs) || !Number.isFinite(ns) || !Number.isFinite(ew) || !Number.isFinite(ud)) continue;
-
-        if (!Number.isFinite(startTimeMs)) {
-            startTimeMs = timestampMs;
-        }
-        const pga = Math.sqrt(ns * ns + ew * ew + ud * ud);
-        nsSamples.push(ns);
-        ewSamples.push(ew);
-        udSamples.push(ud);
-        pgaSamples.push(Number.isFinite(pga) ? pga : 0);
-    }
-
-    if (pgaSamples.length === 0 || !Number.isFinite(startTimeMs)) return null;
-
-    const intensitySamples = calcRealtimeIntensitySampleSeries(nsSamples, ewSamples, udSamples, samplingFrequencyHz);
-    const sampleIntervalMs = 1000 / samplingFrequencyHz;
-    const endTimeMs = startTimeMs + (pgaSamples.length - 1) * sampleIntervalMs;
-
-    return {
-        pgaSamples,
-        intensitySamples,
-        startTimeMs,
-        endTimeMs,
-        sampleIntervalMs,
-        samplingFrequencyHz,
-    };
-}
-
-function floorToFirstDecimalByJmaRule(value) {
+function floorJma1d(value) {
     if (!Number.isFinite(value)) return -3;
     const roundedTo2Decimals = Math.round(value * 100) / 100;
     return Math.floor(roundedTo2Decimals * 10) / 10;
@@ -2534,77 +3376,11 @@ function floorToFirstDecimalByJmaRule(value) {
 function pgaToApproxShindo(pga) {
     if (!Number.isFinite(pga) || pga <= 0) return -3;
     const rawShindo = 2 * Math.log10(pga) + 0.94;
-    const processed = floorToFirstDecimalByJmaRule(rawShindo);
+    const processed = floorJma1d(rawShindo);
     return Math.max(-3, Math.min(7, processed));
 }
 
-const REALTIME_INTENSITY_BIN_CONFIG = {
-    min: -3,
-    max: 7,
-    step: 0.001,
-};
-
-function calcRealtimeIntensitySampleSeries(nsSamples, ewSamples, udSamples, samplingFrequencyHz) {
-    if (!Array.isArray(nsSamples) || !Array.isArray(ewSamples) || !Array.isArray(udSamples)) return [];
-    if (!Number.isFinite(samplingFrequencyHz) || samplingFrequencyHz <= 0) return [];
-
-    const sampleCount = Math.min(nsSamples.length, ewSamples.length, udSamples.length);
-    if (sampleCount <= 0) return [];
-
-    const filtered = applyRealtimeIntensityApproximation2012(
-        nsSamples.slice(0, sampleCount),
-        ewSamples.slice(0, sampleCount),
-        udSamples.slice(0, sampleCount),
-        samplingFrequencyHz
-    );
-
-    const binCount = Math.round((REALTIME_INTENSITY_BIN_CONFIG.max - REALTIME_INTENSITY_BIN_CONFIG.min) / REALTIME_INTENSITY_BIN_CONFIG.step) + 1;
-    const fenwick = new FenwickTree(binCount + 2);
-    const windowSampleCount = Math.max(1, Math.round(60 * samplingFrequencyHz));
-    const requiredSampleCount = Math.max(1, Math.floor(0.3 * samplingFrequencyHz));
-    const sampleBins = new Array(sampleCount);
-    const intensitySamples = new Array(sampleCount).fill(-3);
-
-    for (let i = 0; i < sampleCount; i += 1) {
-        const amplitude = Number(filtered[i]);
-        const rawIntensity = amplitude > 0
-            ? 2 * Math.log10(amplitude) + 0.94
-            : REALTIME_INTENSITY_BIN_CONFIG.min;
-        const binIndex = rawIntensityToBinIndex(rawIntensity);
-        sampleBins[i] = binIndex;
-        fenwick.add(binIndex + 1, 1);
-
-        if (i >= windowSampleCount) {
-            fenwick.add(sampleBins[i - windowSampleCount] + 1, -1);
-        }
-
-        const activeCount = Math.min(i + 1, windowSampleCount);
-        const thresholdRankFromSmallest = activeCount >= requiredSampleCount
-            ? activeCount - requiredSampleCount + 1
-            : 1;
-        const thresholdBin = fenwick.findByPrefix(thresholdRankFromSmallest) - 1;
-        const thresholdIntensity = binIndexToRawIntensity(thresholdBin);
-        intensitySamples[i] = Math.max(
-            REALTIME_INTENSITY_BIN_CONFIG.min,
-            Math.min(REALTIME_INTENSITY_BIN_CONFIG.max, floorToFirstDecimalByJmaRule(thresholdIntensity))
-        );
-    }
-
-    return intensitySamples;
-}
-
-function rawIntensityToBinIndex(value) {
-    const clamped = Math.max(REALTIME_INTENSITY_BIN_CONFIG.min, Math.min(REALTIME_INTENSITY_BIN_CONFIG.max, Number(value)));
-    return Math.round((clamped - REALTIME_INTENSITY_BIN_CONFIG.min) / REALTIME_INTENSITY_BIN_CONFIG.step);
-}
-
-function binIndexToRawIntensity(index) {
-    const maxIndex = Math.round((REALTIME_INTENSITY_BIN_CONFIG.max - REALTIME_INTENSITY_BIN_CONFIG.min) / REALTIME_INTENSITY_BIN_CONFIG.step);
-    const clampedIndex = Math.max(0, Math.min(maxIndex, Number(index)));
-    return REALTIME_INTENSITY_BIN_CONFIG.min + clampedIndex * REALTIME_INTENSITY_BIN_CONFIG.step;
-}
-
-function getKyoshinSeriesSampleIndex(series, targetTimeMs) {
+function getKyoshinSampleIndex(series, targetTimeMs) {
     if (!series || !Number.isFinite(series.startTimeMs) || !Number.isFinite(series.sampleIntervalMs) || series.sampleIntervalMs <= 0) {
         return -1;
     }
@@ -2613,165 +3389,6 @@ function getKyoshinSeriesSampleIndex(series, targetTimeMs) {
     const relativeMs = targetTimeMs - series.startTimeMs;
     if (relativeMs < 0) return -1;
     return Math.floor(relativeMs / series.sampleIntervalMs);
-}
-
-class FenwickTree {
-    constructor(size) {
-        this.tree = new Array(size).fill(0);
-    }
-
-    add(index, delta) {
-        for (let i = index; i < this.tree.length; i += i & -i) {
-            this.tree[i] += delta;
-        }
-    }
-
-    findByPrefix(target) {
-        let index = 0;
-        let bitMask = 1;
-        while ((bitMask << 1) < this.tree.length) {
-            bitMask <<= 1;
-        }
-
-        let remaining = target;
-        for (let bit = bitMask; bit !== 0; bit >>= 1) {
-            const next = index + bit;
-            if (next < this.tree.length && this.tree[next] < remaining) {
-                index = next;
-                remaining -= this.tree[next];
-            }
-        }
-        return index + 1;
-    }
-}
-
-function applyRealtimeIntensityApproximation2012(nsSamples, ewSamples, udSamples, samplingFrequencyHz) {
-    const dt = 1 / samplingFrequencyHz;
-    const filterConfig = {
-        f0: 0.45,
-        f1: 7.0,
-        f2: 0.5,
-        f3: 12.0,
-        f4: 20.0,
-        f5: 30.0,
-        h2a: 1.0,
-        h2b: 0.75,
-        h3: 0.9,
-        h4: 0.6,
-        h5: 0.6,
-        gain: 1.262,
-    };
-
-    const filters = [
-        createRealtimeApproxPairFilter(filterConfig.f0, filterConfig.f1, dt),
-        createRealtimeApproxCompensationPairFilter(filterConfig.f1, dt),
-        createRealtimeApproxCorrectionFilter(filterConfig.f2, filterConfig.h2a, filterConfig.h2b, dt),
-        createRealtimeApproxLowPassFilter(filterConfig.f3, filterConfig.h3, dt),
-        createRealtimeApproxLowPassFilter(filterConfig.f4, filterConfig.h4, dt),
-        createRealtimeApproxLowPassFilter(filterConfig.f5, filterConfig.h5, dt),
-    ];
-
-    const filteredNs = applyRealtimeApproxFilterCascade(nsSamples, filters);
-    const filteredEw = applyRealtimeApproxFilterCascade(ewSamples, filters);
-    const filteredUd = applyRealtimeApproxFilterCascade(udSamples, filters);
-
-    const composite = new Array(filteredNs.length);
-    for (let i = 0; i < filteredNs.length; i += 1) {
-        const ns = filteredNs[i] || 0;
-        const ew = filteredEw[i] || 0;
-        const ud = filteredUd[i] || 0;
-        composite[i] = filterConfig.gain * Math.sqrt(ns * ns + ew * ew + ud * ud);
-    }
-
-    return composite;
-}
-
-function createRealtimeApproxPairFilter(f0, f1, dt) {
-    const w0 = 2 * Math.PI * f0;
-    const w1 = 2 * Math.PI * f1;
-    return normalizeRealtimeApproxCoefficients({
-        alpha0: 8 / (dt * dt) + (4 * w0 + 2 * w1) / dt + w0 * w1,
-        alpha1: 2 * w0 * w1 - 16 / (dt * dt),
-        alpha2: 8 / (dt * dt) - (4 * w0 + 2 * w1) / dt + w0 * w1,
-        beta0: 4 / (dt * dt) + (2 * w1) / dt,
-        beta1: -8 / (dt * dt),
-        beta2: 4 / (dt * dt) - (2 * w1) / dt,
-    });
-}
-
-function createRealtimeApproxCompensationPairFilter(f1, dt) {
-    const w1 = 2 * Math.PI * f1;
-    return normalizeRealtimeApproxCoefficients({
-        alpha0: 16 / (dt * dt) + (17 * w1) / dt + w1 * w1,
-        alpha1: 2 * w1 * w1 - 32 / (dt * dt),
-        alpha2: 16 / (dt * dt) - (17 * w1) / dt + w1 * w1,
-        beta0: 4 / (dt * dt) + (8.5 * w1) / dt + w1 * w1,
-        beta1: 2 * w1 * w1 - 8 / (dt * dt),
-        beta2: 4 / (dt * dt) - (8.5 * w1) / dt + w1 * w1,
-    });
-}
-
-function createRealtimeApproxCorrectionFilter(f2, h2a, h2b, dt) {
-    const w2 = 2 * Math.PI * f2;
-    return normalizeRealtimeApproxCoefficients({
-        alpha0: 12 / (dt * dt) + (12 * h2b * w2) / dt + w2 * w2,
-        alpha1: 10 * w2 * w2 - 24 / (dt * dt),
-        alpha2: 12 / (dt * dt) - (12 * h2b * w2) / dt + w2 * w2,
-        beta0: 12 / (dt * dt) + (12 * h2a * w2) / dt + w2 * w2,
-        beta1: 10 * w2 * w2 - 24 / (dt * dt),
-        beta2: 12 / (dt * dt) - (12 * h2a * w2) / dt + w2 * w2,
-    });
-}
-
-function createRealtimeApproxLowPassFilter(frequency, damping, dt) {
-    const w = 2 * Math.PI * frequency;
-    return normalizeRealtimeApproxCoefficients({
-        alpha0: 12 / (dt * dt) + (12 * damping * w) / dt + w * w,
-        alpha1: 10 * w * w - 24 / (dt * dt),
-        alpha2: 12 / (dt * dt) - (12 * damping * w) / dt + w * w,
-        beta0: w * w,
-        beta1: 10 * w * w,
-        beta2: w * w,
-    });
-}
-
-function normalizeRealtimeApproxCoefficients({ alpha0, alpha1, alpha2, beta0, beta1, beta2 }) {
-    return {
-        a1: alpha1 / alpha0,
-        a2: alpha2 / alpha0,
-        b0: beta0 / alpha0,
-        b1: beta1 / alpha0,
-        b2: beta2 / alpha0,
-    };
-}
-
-function applyRealtimeApproxFilterCascade(samples, filters) {
-    let output = samples.slice();
-    filters.forEach((filter) => {
-        output = applyRealtimeApproxBiquad(output, filter);
-    });
-    return output;
-}
-
-function applyRealtimeApproxBiquad(samples, filter) {
-    const output = new Array(samples.length).fill(0);
-    let x1 = 0;
-    let x2 = 0;
-    let y1 = 0;
-    let y2 = 0;
-
-    for (let i = 0; i < samples.length; i += 1) {
-        const x0 = Number.isFinite(samples[i]) ? samples[i] : 0;
-        const y0 = (-filter.a1 * y1 - filter.a2 * y2)
-            + (filter.b0 * x0 + filter.b1 * x1 + filter.b2 * x2);
-        output[i] = y0;
-        x2 = x1;
-        x1 = x0;
-        y2 = y1;
-        y1 = y0;
-    }
-
-    return output;
 }
 
 function shindoToScaleCode(shindo) {
@@ -2854,11 +3471,12 @@ const kyoshinDetectState = {
     lastSoundAtMs: 0,
     lastFocusedEventId: null,
     lastFocusedAtMs: 0,
+    cameraBeforeFocus: null,
 };
 
 function initKyoshinDetection(points) {
-    kyoshinDetectState.areaFeatures = buildKyoshinAreaFeatures();
-    assignKyoshinPointAreas(points);
+    kyoshinDetectState.areaFeatures = buildKyoshinAreas();
+    assignKyoshinAreas(points);
     kyoshinDetectState.histories = points.map(() => []);
     kyoshinDetectState.candidateStreaks = points.map(() => 0);
     kyoshinDetectState.pointEventIds = points.map(() => null);
@@ -2868,11 +3486,12 @@ function initKyoshinDetection(points) {
     kyoshinDetectState.lastSoundAtMs = 0;
     kyoshinDetectState.lastFocusedEventId = null;
     kyoshinDetectState.lastFocusedAtMs = 0;
-    kyoshinDetectState.neighborMap = buildKyoshinNeighborMap(points);
-    updateKyoshinDetectStatus(null);
+    kyoshinDetectState.cameraBeforeFocus = null;
+    kyoshinDetectState.neighborMap = buildKyoshinNeighbors(points);
+    updateKyoshinStatus(null);
 }
 
-function getKyoshinPointDisplayName(point) {
+function getKyoshinPointName(point) {
     if (!point) return '';
 
     const station = stationMap[point.name];
@@ -2889,7 +3508,7 @@ function getKyoshinPointDisplayName(point) {
     return fallbackPrefectureName;
 }
 
-function buildKyoshinAreaFeatures() {
+function buildKyoshinAreas() {
     if (!japan_data || !Array.isArray(japan_data.features)) return [];
 
     return japan_data.features
@@ -2913,15 +3532,15 @@ function buildKyoshinAreaFeatures() {
         .filter(Boolean);
 }
 
-function assignKyoshinPointAreas(points) {
+function assignKyoshinAreas(points) {
     if (!Array.isArray(points) || points.length === 0) return;
 
     points.forEach((point) => {
-        point.areaName = resolveKyoshinPointAreaName(point);
+        point.areaName = resolveKyoshinArea(point);
     });
 }
 
-function resolveKyoshinPointAreaName(point) {
+function resolveKyoshinArea(point) {
     if (!point) return '';
 
     const station = stationMap[point.name];
@@ -3018,7 +3637,7 @@ function isPointInRing(lon, lat, ring) {
     return inside;
 }
 
-function buildKyoshinNeighborMap(points) {
+function buildKyoshinNeighbors(points) {
     const cellDeg = Math.max(0.1, KYOSHIN_DETECT_CONFIG.neighborRadiusKm / 111);
     const grid = new Map();
 
@@ -3075,7 +3694,7 @@ function haversineDistanceKm(lat1, lon1, lat2, lon2) {
     return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function updateKyoshinHistories(shindoResult, colorResult) {
+function updateKyoshinHistory(shindoResult, colorResult) {
     const pointMetrics = shindoResult.map((_, index) => ({
         valid: false,
         current: null,
@@ -3109,7 +3728,7 @@ function updateKyoshinHistories(shindoResult, colorResult) {
     return pointMetrics;
 }
 
-function classifyKyoshinStrength(maxShindo) {
+function classifyKyoshin(maxShindo) {
     if (!Number.isFinite(maxShindo)) return { rank: 0, label: '不明' };
     if (maxShindo >= 4.5) return { rank: 5, label: '強い揺れ' };
     if (maxShindo >= 2.5) return { rank: 4, label: 'やや強い揺れ' };
@@ -3119,7 +3738,7 @@ function classifyKyoshinStrength(maxShindo) {
     return { rank: 0, label: '微弱' };
 }
 
-function getKyoshinEventTtlMs(maxShindo) {
+function getKyoshinEventTtl(maxShindo) {
     if (!Number.isFinite(maxShindo)) return 25000;
     if (maxShindo >= 4.5) return 90000;
     if (maxShindo >= 2.5) return 70000;
@@ -3127,7 +3746,7 @@ function getKyoshinEventTtlMs(maxShindo) {
     return 30000;
 }
 
-function getKyoshinPointTtlMs(currentShindo) {
+function getKyoshinPointTtl(currentShindo) {
     if (!Number.isFinite(currentShindo)) return 15000;
     if (currentShindo >= 4.5) return 90000;
     if (currentShindo >= 2.5) return 70000;
@@ -3136,7 +3755,7 @@ function getKyoshinPointTtlMs(currentShindo) {
     return 20000;
 }
 
-function getOrCreateKyoshinEvent(nowMs) {
+function getOrCreateEvent(nowMs) {
     const id = kyoshinDetectState.nextEventId;
     kyoshinDetectState.nextEventId += 1;
     const event = {
@@ -3189,13 +3808,13 @@ function mergeKyoshinEvents(targetId, sourceId) {
     kyoshinDetectState.events.delete(sourceId);
 }
 
-function processKyoshinDetection(nowMs, points, shindoResult, colorResult) {
+function processKyoshin(nowMs, points, shindoResult, colorResult) {
     if (!Array.isArray(points) || points.length === 0) {
-        updateKyoshinDetectStatus(null);
+        updateKyoshinStatus(null);
         return;
     }
 
-    const metrics = updateKyoshinHistories(shindoResult, colorResult);
+    const metrics = updateKyoshinHistory(shindoResult, colorResult);
     const triggeredPointIds = [];
 
     for (let i = 0; i < points.length; i += 1) {
@@ -3265,7 +3884,7 @@ function processKyoshinDetection(nowMs, points, shindoResult, colorResult) {
         if (hasReachedTrigger || keepAlive) {
             kyoshinDetectState.pointExpiresAtMs[i] = Math.max(
                 Number(kyoshinDetectState.pointExpiresAtMs[i]) || 0,
-                nowMs + getKyoshinPointTtlMs(metric.current)
+                nowMs + getKyoshinPointTtl(metric.current)
             );
             triggeredPointIds.push(i);
         }
@@ -3295,7 +3914,7 @@ function processKyoshinDetection(nowMs, points, shindoResult, colorResult) {
         });
 
         if (!targetEvent) {
-            targetEvent = getOrCreateKyoshinEvent(nowMs);
+            targetEvent = getOrCreateEvent(nowMs);
         }
 
         relatedEventIds.forEach((eventId) => {
@@ -3310,13 +3929,13 @@ function processKyoshinDetection(nowMs, points, shindoResult, colorResult) {
         const shindo = Number(shindoResult[pointId]);
         if (Number.isFinite(shindo)) {
             targetEvent.maxShindo = Math.max(targetEvent.maxShindo, shindo);
-            const strength = classifyKyoshinStrength(targetEvent.maxShindo);
+            const strength = classifyKyoshin(targetEvent.maxShindo);
             targetEvent.strengthRank = strength.rank;
             targetEvent.strengthLabel = strength.label;
         }
 
         targetEvent.updatedAtMs = nowMs;
-        targetEvent.expiresAtMs = nowMs + getKyoshinEventTtlMs(targetEvent.maxShindo);
+        targetEvent.expiresAtMs = nowMs + getKyoshinEventTtl(targetEvent.maxShindo);
     });
 
     kyoshinDetectState.events.forEach((event, eventId) => {
@@ -3350,7 +3969,7 @@ function processKyoshinDetection(nowMs, points, shindoResult, colorResult) {
                 strongPointCount += 1;
             }
 
-            const pointName = getKyoshinPointDisplayName(point);
+            const pointName = getKyoshinPointName(point);
             if (!pointName) return;
             pointNameCounter.set(pointName, (pointNameCounter.get(pointName) || 0) + 1);
         });
@@ -3364,7 +3983,7 @@ function processKyoshinDetection(nowMs, points, shindoResult, colorResult) {
         event.activePointCount = count;
         event.strongPointCount = strongPointCount;
         event.maxShindo = count > 0 ? currentMaxShindo : -3;
-        const liveStrength = classifyKyoshinStrength(event.maxShindo);
+        const liveStrength = classifyKyoshin(event.maxShindo);
         event.strengthRank = liveStrength.rank;
         event.strengthLabel = liveStrength.label;
         event.areaNames = Array.from(pointNameCounter.entries())
@@ -3430,14 +4049,15 @@ function processKyoshinDetection(nowMs, points, shindoResult, colorResult) {
         }
     });
 
-    maybePlayKyoshinDetectSound(primaryEvent, nowMs);
-    maybeFocusKyoshinEvent(primaryEvent, nowMs);
-    updateKyoshinDetectStatus(primaryEvent);
-    syncHistoricalEqVisualsSuppression(primaryEvent);
+    maybePlayKyoshinSound(primaryEvent, nowMs);
+    maybeFocusKyoshin(primaryEvent, nowMs);
+    maybeRestoreKyoshinCam(primaryEvent);
+    updateKyoshinStatus(primaryEvent);
 }
 
-function maybeFocusKyoshinEvent(event, nowMs) {
+function maybeFocusKyoshin(event, nowMs) {
     if (!event) return;
+    if (!event.isConfirmed && !KYOSHIN_VIEW_CONFIG.showCandidates) return;
     if (event.pointIds.size < KYOSHIN_DETECT_CONFIG.tentativeEventMinPoints) return;
 
     const lat = Number(event.centerLat);
@@ -3446,6 +4066,15 @@ function maybeFocusKyoshinEvent(event, nowMs) {
 
     if (kyoshinDetectState.lastFocusedEventId === event.id) return;
 
+    if (!kyoshinDetectState.cameraBeforeFocus) {
+        const center = map.getCenter();
+        kyoshinDetectState.cameraBeforeFocus = {
+            lat: center.lat,
+            lon: center.lng,
+            zoom: map.getZoom(),
+        };
+    }
+
     kyoshinDetectState.lastFocusedEventId = event.id;
     kyoshinDetectState.lastFocusedAtMs = nowMs;
 
@@ -3453,7 +4082,23 @@ function maybeFocusKyoshinEvent(event, nowMs) {
     map.flyTo([lat, lon], targetZoom, { animate: true, duration: 0.6 });
 }
 
-function maybePlayKyoshinDetectSound(event, nowMs) {
+function maybeRestoreKyoshinCam(event) {
+    if (event && event.pointIds.size >= KYOSHIN_DETECT_CONFIG.tentativeEventMinPoints) return;
+
+    const previousCamera = kyoshinDetectState.cameraBeforeFocus;
+    if (!previousCamera) return;
+
+    map.flyTo([previousCamera.lat, previousCamera.lon], previousCamera.zoom, {
+        animate: true,
+        duration: 0.6,
+    });
+
+    kyoshinDetectState.cameraBeforeFocus = null;
+    kyoshinDetectState.lastFocusedEventId = null;
+    kyoshinDetectState.lastFocusedAtMs = 0;
+}
+
+function maybePlayKyoshinSound(event, nowMs) {
     if (!event) return;
     if (!event.isConfirmed) return;
     if (event.pointIds.size < KYOSHIN_DETECT_CONFIG.minEventPointsForDisplay) return;
@@ -3466,7 +4111,14 @@ function maybePlayKyoshinDetectSound(event, nowMs) {
     playShakeSound();
 }
 
-function updateKyoshinDetectStatus(event) {
+function isDisplayableKyoshinEvent(event) {
+    if (!event) return false;
+    if (event.pointIds.size < KYOSHIN_DETECT_CONFIG.tentativeEventMinPoints) return false;
+    if (event.isConfirmed) return true;
+    return KYOSHIN_VIEW_CONFIG.showCandidates;
+}
+
+function updateKyoshinStatus(event) {
     const card = document.getElementById('kyoshin-detect-card');
     const text = document.getElementById('kyoshin-detect-status-text');
     const level = document.getElementById('kyoshin-detect-level');
@@ -3477,7 +4129,7 @@ function updateKyoshinDetectStatus(event) {
 
     text.classList.remove('kyoshin-detect-idle', 'kyoshin-detect-active', 'kyoshin-detect-strong');
 
-    if (!event || event.pointIds.size < KYOSHIN_DETECT_CONFIG.tentativeEventMinPoints) {
+    if (!isDisplayableKyoshinEvent(event)) {
         card.hidden = true;
         text.classList.add('kyoshin-detect-idle');
         text.textContent = '揺れ未検知';
@@ -3503,11 +4155,11 @@ function updateKyoshinDetectStatus(event) {
     panel.hidden = areaNames.length === 0;
 }
 
-function getActiveKyoshinDetectedPointSet() {
+function getActiveKyoshinPoints() {
     const activePointIds = new Set();
 
     kyoshinDetectState.events.forEach((event) => {
-        if (!event || event.pointIds.size < KYOSHIN_DETECT_CONFIG.tentativeEventMinPoints) return;
+        if (!isDisplayableKyoshinEvent(event)) return;
         event.pointIds.forEach((pointId) => {
             activePointIds.add(pointId);
         });
@@ -3558,6 +4210,19 @@ async function initKyoshin() {
         }
     });
 
+    const kyoshinCandidateToggle = document.getElementById('kyoshin-show-candidates-toggle');
+    if (kyoshinCandidateToggle) {
+        kyoshinCandidateToggle.checked = KYOSHIN_VIEW_CONFIG.showCandidates;
+        kyoshinCandidateToggle.addEventListener('change', () => {
+            KYOSHIN_VIEW_CONFIG.showCandidates = kyoshinCandidateToggle.checked;
+            if (window._lastColorResult || window._lastPgaColorResult) {
+                drawKyoshinPoints(kyoshinPoints, kyoshinMode === 'shindo'
+                    ? window._lastColorResult
+                    : window._lastPgaColorResult);
+            }
+        });
+    }
+
     setInterval(async () => {
         const nowMs = Date.now();
         if (!CONFIG.isTest && latestTime - lastSync > 3600) {
@@ -3567,7 +4232,7 @@ async function initKyoshin() {
             latestTime += 1;
         }
     const { shindoResult, pgaResult, colorResult, pgaColorResult } = await updateImages(latestTime, kyoshinPoints);
-    processKyoshinDetection(nowMs, kyoshinPoints, shindoResult, colorResult);
+    processKyoshin(nowMs, kyoshinPoints, shindoResult, colorResult);
     window._lastShindoResult = shindoResult;
     window._lastColorResult = colorResult;
     window._lastPgaColorResult = pgaColorResult;
@@ -3629,15 +4294,17 @@ function color2position(r, g, b) {
 }
 
 function drawKyoshinPoints(points, colorResult) {
-    if (!window.kyoshinLayer) {
-        window.kyoshinLayer = L.layerGroup().addTo(map);
-    }
-    window.kyoshinLayer.clearLayers();
-    const detectedPointIds = getActiveKyoshinDetectedPointSet();
+    if (!Array.isArray(points) || !Array.isArray(colorResult)) return;
+    const detectedPointIds = getActiveKyoshinPoints();
     const isEewIssued = isEewIssuedNow();
     const hasDetectedPoints = detectedPointIds.size > 0;
+    maybeAutoFitDetectedPointsForEew(points, detectedPointIds, isEewIssued);
     const isCalmRealtime = !isEewIssued && !hasDetectedPoints;
-    const suppressDetectedVisuals = isViewingPastEarthquakeDuringEew();
+    const suppressDetectedVisuals = isPastEqViewDuringEew();
+    const isFocusingEew = isEewIssued && !suppressDetectedVisuals;
+    const isFocusingKyoshin = Boolean(kyoshinDetectState.cameraBeforeFocus || kyoshinDetectState.lastFocusedEventId != null);
+    const shouldUseEmphasisOpacity = isFocusingEew || isFocusingKyoshin;
+    const renderItems = [];
 
     points.forEach(({ lat, lon, suspended }, i) => {
         if (suspended) return;
@@ -3654,36 +4321,127 @@ function drawKyoshinPoints(points, colorResult) {
         const radius = getKyoshinRadius(showDetectedVisuals);
         const baseOpacity = getKyoshinOpacity(r, g, b);
         const calmOpacity = Math.min(0.85, Math.max(0.05, baseOpacity * 0.7));
+        const shouldMakeOpaque = shouldUseEmphasisOpacity && (isEewIssued || showDetectedVisuals);
         const fillOpacity = isCalmRealtime
             ? calmOpacity
             : (suppressDetectedVisuals
                 ? baseOpacity
-                : ((isEewIssued || showDetectedVisuals) ? 1 : baseOpacity));
-        const strokeColor = showDetectedVisuals ? '#f3e44c' : color;
-        const strokeWeight = showDetectedVisuals ? 2.4 : 0;
-        const shindo = Number(window._lastShindoResult?.[i]);
-
-        if (CONFIG.isTest && kyoshinMode === 'shindo' && !suppressDetectedVisuals && !isCalmRealtime) {
-            const icon = getKyoshinPointIcon(shindo, showDetectedVisuals);
-            L.marker([lat, lon], {
-                icon,
-                keyboard: false,
-                interactive: false,
-                pane: 'shindo_canvas',
-                zIndexOffset: showDetectedVisuals ? 1000 : 0,
-            }).addTo(window.kyoshinLayer);
-            return;
+            : (shouldMakeOpaque ? 1 : baseOpacity));
+        const strokeColor = isDetected ? '#f3e44c' : color;
+        const strokeWeight = isDetected ? 2.4 : 0;
+        const shindoFromCache = Number(window._lastShindoResult?.[i]);
+        let renderShindo = shindoFromCache;
+        if (!Number.isFinite(renderShindo)) {
+            const pos = color2position(r, g, b);
+            renderShindo = Number.isFinite(pos) ? (10.0 * pos - 3.0) : -999;
         }
 
-        L.circleMarker([lat, lon], {
+        renderItems.push({
+            i,
+            lat,
+            lon,
+            color,
+            r,
+            g,
+            b,
             radius,
-            color: strokeColor,
-            fillColor: color,
             fillOpacity,
-            opacity: 1,
-            weight: strokeWeight,
-        }).addTo(window.kyoshinLayer);
+            strokeColor,
+            strokeWeight,
+            isDetected,
+            showDetectedVisuals,
+            renderShindo,
+        });
     });
+
+    renderItems
+        .sort((a, b) => a.renderShindo - b.renderShindo || a.i - b.i)
+        .forEach((item) => {
+            const useIcon = CONFIG.isTest && kyoshinMode === 'shindo' && !suppressDetectedVisuals && !isCalmRealtime;
+            item.useIcon = useIcon;
+            if (useIcon) {
+                item.iconName = getKyoshinPointIconName(item.renderShindo);
+                item.iconSize = getKyoshinPointIconSize(item.isDetected);
+            }
+        });
+
+    if (kyoshinCanvasLayer) {
+        kyoshinCanvasLayer.setRenderItems(renderItems);
+    }
+}
+
+function maybeAutoFitDetectedPointsForEew(points, detectedPointIds, isEewIssued) {
+    if (!isEewIssued || !(detectedPointIds instanceof Set) || detectedPointIds.size === 0) {
+        kyoshinAutoViewState.lastDetectedSignature = '';
+        kyoshinAutoViewState.lastMovedAt = 0;
+        kyoshinAutoViewState.lastTargetCenter = null;
+        kyoshinAutoViewState.lastTargetSpanKm = null;
+        return;
+    }
+
+    const sortedIds = Array.from(detectedPointIds).sort((a, b) => a - b);
+    const signature = sortedIds.join(',');
+    if (signature === kyoshinAutoViewState.lastDetectedSignature) return;
+
+    const bounds = L.latLngBounds([]);
+    sortedIds.forEach((pointId) => {
+        const point = points?.[pointId];
+        if (!point) return;
+        const lat = Number(point.lat);
+        const lon = Number(point.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+        bounds.extend([lat, lon]);
+    });
+    if (!bounds.isValid()) return;
+
+    const northEast = bounds.getNorthEast();
+    const southWest = bounds.getSouthWest();
+    const isSinglePoint = northEast.lat === southWest.lat && northEast.lng === southWest.lng;
+    const targetCenter = bounds.getCenter();
+    const currentCenter = map.getCenter();
+    const centerMoveKm = map.distance(currentCenter, targetCenter) / 1000;
+    const targetZoom = isSinglePoint
+        ? Math.max(map.getZoom(), 8)
+        : map.getBoundsZoom(bounds, false, [70, 70]);
+    const zoomDelta = Math.abs(map.getZoom() - targetZoom);
+    const spanKm = isSinglePoint ? 0 : (southWest.distanceTo(northEast) / 1000);
+    const prevSpanKm = Number(kyoshinAutoViewState.lastTargetSpanKm);
+    const spanChangeRatio = prevSpanKm > 0
+        ? Math.abs(spanKm - prevSpanKm) / prevSpanKm
+        : 1;
+    const now = Date.now();
+    const elapsedSinceMove = now - Number(kyoshinAutoViewState.lastMovedAt || 0);
+    const isFirstAutoMove = !kyoshinAutoViewState.lastMovedAt;
+    const hasMeaningfulChange = isFirstAutoMove
+        || centerMoveKm >= KYOSHIN_AUTO_VIEW_CONFIG.minCenterMoveKm
+        || zoomDelta >= KYOSHIN_AUTO_VIEW_CONFIG.minZoomDelta
+        || spanChangeRatio >= KYOSHIN_AUTO_VIEW_CONFIG.minSpanChangeRatio;
+
+    if (!hasMeaningfulChange) {
+        kyoshinAutoViewState.lastDetectedSignature = signature;
+        return;
+    }
+    if (!isFirstAutoMove && elapsedSinceMove < KYOSHIN_AUTO_VIEW_CONFIG.minIntervalMs) {
+        return;
+    }
+
+    if (isSinglePoint) {
+        map.flyTo(targetCenter, targetZoom, {
+            animate: true,
+            duration: 0.5,
+        });
+    } else {
+        map.flyToBounds(bounds, {
+            padding: [70, 70],
+            maxZoom: 8,
+            duration: 0.5,
+        });
+    }
+
+    kyoshinAutoViewState.lastMovedAt = now;
+    kyoshinAutoViewState.lastTargetCenter = targetCenter;
+    kyoshinAutoViewState.lastTargetSpanKm = spanKm;
+    kyoshinAutoViewState.lastDetectedSignature = signature;
 }
 
 function getKyoshinOpacity(r, g, b) {

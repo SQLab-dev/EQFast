@@ -18,6 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 </head>
     <body>
+    <body>
         <div class="side-panel">
             <div class="eew-card" id="eew-card" hidden>
                 <h2 class="eew-card_status"></h2>
@@ -209,6 +210,67 @@
 
         <div id="map"></div>
     <div class="last-update-badge" id="last-update-time">--/-- --:--:--</div>
+
+
+        <div class="audio-permission-modal" id="usage-notice-modal" hidden>
+            <div class="audio-permission-backdrop" id="usage-notice-backdrop"></div>
+            <div class="audio-permission-dialog usage-notice-dialog" role="dialog" aria-modal="true" aria-labelledby="usage-notice-title">
+                <p class="audio-permission-title" id="usage-notice-title">ご利用にあたっての注意事項</p>
+                <div class="audio-permission-text usage-notice-text">
+                    <p><strong>提供元について</strong><br>本アプリケーションは個人によって開発されたものであり、国立研究開発法人防災科学技術研究所、および各データ提供元、関係機関とは一切関係ありません。本アプリに関するお問い合わせを、各機関へ行うことは固くお断りいたします。</p>
+                    <p><strong>観測データについて</strong><br>表示されるリアルタイム観測データは、設置地点の揺れを可視化するものであり、地震の発生を予知、または事前に通知するものではありません。</p>
+                    <p><strong>免責事項</strong><br>通信状況や機器の不具合等により、観測点が異常な値を示したり、データの更新が遅延したりする場合があります。本アプリの利用により生じた損害等について、開発者は一切の責任を負いかねますので、あらかじめご了承ください。</p>
+                </div>
+                <div class="audio-permission-actions">
+                    <button class="audio-permission-btn audio-permission-btn-primary" id="usage-notice-ok-btn">確認しました</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="audio-permission-modal" id="audio-permission-modal" hidden>
+            <div class="audio-permission-backdrop" id="audio-permission-backdrop"></div>
+            <div class="audio-permission-dialog" role="dialog" aria-modal="true" aria-labelledby="audio-permission-title">
+                <p class="audio-permission-title" id="audio-permission-title">効果音の再生確認</p>
+                <p class="audio-permission-text">効果音を有効にするには、最初に再生の許可が必要です。</p>
+                <div class="audio-permission-actions">
+                    <button class="audio-permission-btn audio-permission-btn-secondary" id="audio-permission-cancel-btn">あとで</button>
+                    <button class="audio-permission-btn audio-permission-btn-primary" id="audio-permission-allow-btn">許可する</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="audio-permission-modal" id="contact-modal" hidden>
+            <div class="audio-permission-backdrop" id="contact-backdrop"></div>
+            <div class="audio-permission-dialog" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+                <p class="audio-permission-title" id="contact-title">お問い合わせ方法を選択</p>
+                <div class="audio-permission-actions" style="justify-content:flex-start; flex-wrap:wrap;">
+                    <button class="audio-permission-btn audio-permission-btn-secondary" id="contact-github-issue-btn">GitHub Issue</button>
+                    <button class="audio-permission-btn audio-permission-btn-secondary" id="contact-google-form-btn">Googleフォーム</button>
+                    <button class="audio-permission-btn audio-permission-btn-primary" id="contact-close-btn">閉じる</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="audio-permission-modal" id="credits-modal" hidden>
+            <div class="audio-permission-backdrop" id="credits-backdrop"></div>
+            <div class="audio-permission-dialog" role="dialog" aria-modal="true" aria-labelledby="credits-title">
+                <p class="audio-permission-title" id="credits-title">クレジット</p>
+                <p class="audio-permission-text"></p>
+                <p class="audio-permission-text">
+                    <a class="audio-permission-link" href="https://leafletjs.com/" target="_blank">Leaflet</a><br>
+                    <a class="audio-permission-link" href="https://www.data.jma.go.jp/developer/gis.html" target="_blank">気象庁 予報区等GISデータの一覧</a><br>
+                    <a class="audio-permission-link" href="https://github.com/mutsuyuki/Leaflet.SmoothWheelZoom" target="_blank">SmoothWheelZoom</a><br>
+                    <a class="audio-permission-link" href="https://fonts.google.com/specimen/Jost" target="_blank">Jost</a> , <a class="audio-permission-link" href="https://fonts.google.com/noto/specimen/Noto+Sans+JP?query=noto+sans+jp">Noto Sans JP</a><br>
+                    <a class="audio-permission-link" href="https://otologic.jp/" target="_blank">OtoLogic</a><br>
+                    <a class="audio-permission-link" href="https://api.wolfx.jp" target="_blank">Wolfx API</a><br>
+                    <a class="audio-permission-link" href="http://www.kmoni.bosai.go.jp/" target="_blank">防災科学技術研究所 強震モニタ</a><br>
+                    詳しくは<a href="" class="audio-permission-link">こちら</a>
+                </p>
+                <div class="audio-permission-actions">
+                    <button class="audio-permission-btn audio-permission-btn-primary" id="credits-close-btn">閉じる</button>
+                </div>
+            </div>
+        </div>
 
         <script src="assets/vendor/JMAPoints.js"></script>
         <script src="assets/vendor/SmoothWheelZoom.js"></script>
