@@ -13,11 +13,8 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 </head>
-    <body>
     <body>
         <div class="side-panel">
             <div class="eew-card" id="eew-card" hidden>
@@ -137,7 +134,7 @@
                     <div class="voice-param-row">
                         <span class="voice-param-label">音量</span>
                         <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="0.8"
-                            style="flex:1; accent-color:#3e506d; margin: 0 8px;">
+                            style="flex:1; accent-color:#3e506d; margin: 0 8px; width: 100px;">
                         <span id="sound-volume-label" class="voice-param-label">80%</span>
                     </div>
 
@@ -201,27 +198,34 @@
                         <button class="kyoshin-mode-btn" id="kyoshin-pga-btn">加速度</button>
                     </div>
                 </div>
+                <div class="voice-toggle-row">
+                    <span class="voice-toggle-label">揺れ候補を表示 (低精度)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="kyoshin-show-candidates-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
 
-            <a class="feedback-button" href="https://forms.gle/V1J5r4MjhNfB1Tz26" target="_blank">お問い合わせ</a>
-            <a class="feedback-button" href="#" target="_blank">クレジット</a>
+            <a class="feedback-button" href="#" id="contact-button">お問い合わせ</a>
+            <a class="feedback-button" href="#" id="credits-button">クレジット</a>
 
         </div>
 
         <div id="map"></div>
     <div class="last-update-badge" id="last-update-time">--/-- --:--:--</div>
 
-
         <div class="audio-permission-modal" id="usage-notice-modal" hidden>
             <div class="audio-permission-backdrop" id="usage-notice-backdrop"></div>
             <div class="audio-permission-dialog usage-notice-dialog" role="dialog" aria-modal="true" aria-labelledby="usage-notice-title">
                 <p class="audio-permission-title" id="usage-notice-title">ご利用にあたっての注意事項</p>
                 <div class="audio-permission-text usage-notice-text">
-                    <p><strong>提供元について</strong><br>本アプリケーションは個人によって開発されたものであり、国立研究開発法人防災科学技術研究所、および各データ提供元、関係機関とは一切関係ありません。本アプリに関するお問い合わせを、各機関へ行うことは固くお断りいたします。</p>
+                    <p><strong>提供元について</strong><br>本アプリケーションは個人（または開発チーム）によって開発されたものであり、国立研究開発法人防災科学技術研究所、および各データ提供元、関係機関とは一切関係ありません。本アプリに関するお問い合わせを、各機関へ行うことは固くお断りいたします。</p>
                     <p><strong>観測データについて</strong><br>表示されるリアルタイム観測データは、設置地点の揺れを可視化するものであり、地震の発生を予知、または事前に通知するものではありません。</p>
                     <p><strong>免責事項</strong><br>通信状況や機器の不具合等により、観測点が異常な値を示したり、データの更新が遅延したりする場合があります。本アプリの利用により生じた損害等について、開発者は一切の責任を負いかねますので、あらかじめご了承ください。</p>
                 </div>
                 <div class="audio-permission-actions">
+
                     <button class="audio-permission-btn audio-permission-btn-primary" id="usage-notice-ok-btn">確認しました</button>
                 </div>
             </div>

@@ -73,6 +73,28 @@ async function fetchTestDataJson(baseName) {
     return fetchJsonFromCandidates(cacheKey, [`${getReplayBasePath()}/${baseName}.json`]);
 }
 
+const API_CONFIG = {
+    p2pquakeUrl: "https://eqf-worker.spdev-3141.workers.dev/api/p2pquake?codes=551&limit=20",
+    kmoniProxyBaseUrl: "https://eqf-kyoshin.spdev-3141.workers.dev/",
+    kmoniHost: "www.kmoni.bosai.go.jp",
+};
+
+function buildWorkerProxyUrl(targetUrl) {
+    return `${API_CONFIG.kmoniProxyBaseUrl}?url=${encodeURIComponent(targetUrl)}`;
+}
+
+function buildKmoniUrl(path) {
+    return `http://${API_CONFIG.kmoniHost}${path}`;
+}
+
+async function fetchViaWorkerProxy(targetUrl, init) {
+    const response = await fetch(buildWorkerProxyUrl(targetUrl), init);
+    if (!response.ok) {
+        throw new Error(`Worker proxy request failed: ${response.status}`);
+    }
+    return response;
+}
+
 const CONFIG = {
     isTest: urlParams.has("test"),
     testEventId: getTestEventId(),
@@ -80,7 +102,7 @@ const CONFIG = {
     get apiurl() {
         return this.isTest
         ? `${getReplayBasePath(this.testEventId)}/earthquakes.json`
-        : "https://eqf-worker.spdev-3141.workers.dev/api/p2pquake?codes=551&limit=20"
+        : API_CONFIG.p2pquakeUrl
     },
 
     get updateInterval() {
@@ -374,7 +396,8 @@ let shindoFillPrewarmCompleted = false;
 let currentDisplayedEarthquake = null;
 let selectedEarthquakeKey = null;
 let lastRenderedEarthquakeKey = null;
-let PROXY = 'https://eqf-kyoshin.spdev-3141.workers.dev/?url=';
+let latestDetailScaleEarthquakes = [];
+let latestDetailScaleEarthquake = null;
 let kyoshinMode = 'shindo'; // 'shindo' or 'pga'
 const KYOSHIN_VIEW_CONFIG = {
     showCandidates: false,
@@ -400,6 +423,7 @@ let preferLatestEqDuringEew = false;
 let lastSeenActiveEewUpdateKey = '';
 let lastSeenLatestDetailScaleKey = '';
 const eewWarnAreaSignatureByEvent = new Map();
+const USAGE_NOTICE_DISMISSED_KEY = 'eqfast.hideUsageNotice';
 const kyoshinAutoViewState = {
     lastDetectedSignature: '',
     lastMovedAt: 0,
@@ -891,6 +915,8 @@ const latestCard = document.querySelector('.latest-card');
 if (latestCard) {
     latestCard.addEventListener('click', () => {
         selectedEarthquakeKey = null;
+        preferLatestEqDuringEew = false;
+        refreshDisplayedEarthquake({ autoMove: true });
     });
 }
 
@@ -901,10 +927,88 @@ if (eewCardElement) {
         if (!activeEewEq) return;
 
         selectedEarthquakeKey = null;
-        const activeEewKey = getEarthquakeKey(activeEewEq);
-        renderEarthquakeOnMap(activeEewEq, { autoMove: activeEewKey !== lastRenderedEarthquakeKey });
-        lastRenderedEarthquakeKey = activeEewKey;
+        preferLatestEqDuringEew = false;
+        refreshDisplayedEarthquake({ autoMove: true, forceEewFocus: true });
     });
+}
+
+function getSelectedEarthquakeFromLatestData() {
+    if (!selectedEarthquakeKey) return null;
+    return latestDetailScaleEarthquakes.find((eq) => getEarthquakeKey(eq) === selectedEarthquakeKey) || null;
+}
+
+function getDisplayEarthquakeState(options = {}) {
+    const { forceEewFocus = false } = options;
+    const activeEewEq = getActiveEewEq();
+    const selectedEq = getSelectedEarthquakeFromLatestData();
+    const latestEq = latestDetailScaleEarthquake;
+
+    if (selectedEq) {
+        return {
+            eq: selectedEq,
+            reason: 'selected-history',
+            useEewVisual: false,
+        };
+    }
+
+    if (selectedEarthquakeKey && !selectedEq) {
+        selectedEarthquakeKey = null;
+    }
+
+    if (forceEewFocus && activeEewEq) {
+        return {
+            eq: activeEewEq,
+            reason: 'active-eew',
+            useEewVisual: true,
+        };
+    }
+
+    if (activeEewEq && preferLatestEqDuringEew && latestEq) {
+        return {
+            eq: latestEq,
+            reason: 'latest-during-eew',
+            useEewVisual: false,
+        };
+    }
+
+    if (activeEewEq) {
+        return {
+            eq: activeEewEq,
+            reason: 'active-eew',
+            useEewVisual: true,
+        };
+    }
+
+    if (latestEq) {
+        return {
+            eq: latestEq,
+            reason: 'latest',
+            useEewVisual: false,
+        };
+    }
+
+    const fallbackEq = getCurrentEewEq();
+    return {
+        eq: fallbackEq,
+        reason: fallbackEq ? 'fallback-eew' : 'none',
+        useEewVisual: Boolean(fallbackEq),
+    };
+}
+
+function refreshDisplayedEarthquake(options = {}) {
+    const { autoMove = false, forceEewFocus = false } = options;
+    const displayState = getDisplayEarthquakeState({ forceEewFocus });
+    const displayEq = displayState.eq;
+    if (!displayEq) return null;
+
+    const displayKey = getEarthquakeKey(displayEq);
+    const shouldAutoMove = autoMove || displayKey !== lastRenderedEarthquakeKey;
+    renderEarthquakeOnMap(displayEq, {
+        autoMove: shouldAutoMove,
+        useEewVisual: displayState.useEewVisual,
+    });
+    lastRenderedEarthquakeKey = displayKey;
+    return displayState;
 }
 
 function updateData() {
@@ -924,6 +1028,7 @@ function updateData() {
                     ? data.filter(eq => eq?.issue?.type === "DetailScale")
                     : [];
                 const latest = detailScaleData[0];
+                latestDetailScaleEarthquake = latest || null;
                 const activeEewEq = getActiveEewEq();
                 const activeEewRaw = getActiveEewRaw();
 
@@ -3069,7 +3174,7 @@ function playShakeSound() {
 })();
 
 async function fetchGifPixels(gifUrl) {
-    const res = await fetch(PROXY + encodeURIComponent(gifUrl));
+    const res = await fetchViaWorkerProxy(gifUrl);
     const blob = await res.blob();
     const bitmap = await createImageBitmap(blob);
 
@@ -3099,8 +3204,8 @@ async function updateImages(latestTime, points) {
     const ts = yyyymmdd + pad(t.getHours()) + pad(t.getMinutes()) + pad(t.getSeconds());
 
     // K-MONI endpoint is currently HTTP-only.
-    const shindoUrl = `http://www.kmoni.bosai.go.jp/data/map_img/RealTimeImg/jma_s/${yyyymmdd}/${ts}.jma_s.gif`;
-    const pgaUrl    = `http://www.kmoni.bosai.go.jp/data/map_img/RealTimeImg/acmap_s/${yyyymmdd}/${ts}.acmap_s.gif`;
+    const shindoUrl = buildKmoniUrl(`/data/map_img/RealTimeImg/jma_s/${yyyymmdd}/${ts}.jma_s.gif`);
+    const pgaUrl = buildKmoniUrl(`/data/map_img/RealTimeImg/acmap_s/${yyyymmdd}/${ts}.acmap_s.gif`);
 
     const [shindoData, pgaData] = await Promise.all([
         fetchGifPixels(shindoUrl),
@@ -4169,8 +4274,8 @@ function getActiveKyoshinPoints() {
 }
 
 async function fetchLatestTime() {
-    const url = `http://www.kmoni.bosai.go.jp/webservice/server/pros/latest.json?_=${Date.now()}`;
-    const res = await fetch(PROXY + encodeURIComponent(url));
+    const url = buildKmoniUrl(`/webservice/server/pros/latest.json?_=${Date.now()}`);
+    const res = await fetchViaWorkerProxy(url);
     const json = await res.json();
     latestTime = Math.floor(new Date(json.latest_time.replace(/\//g, '-')).getTime() / 1000);
 }

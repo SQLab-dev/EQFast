@@ -725,10 +725,6 @@ body {
     background-color: #1f2737;
 }
 
-#sound-volue {
-    
-}
-
 .voice-test-btn {
     display: flex;
     align-items: center;
@@ -952,6 +948,16 @@ body {
     padding: 16px;
 }
 
+.usage-notice-dialog {
+    width: min(640px, 100%);
+}
+
+.audio-permission-link{
+    color: #2277ff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
 .audio-permission-title {
     margin: 0;
     color: #ffffff;
@@ -964,6 +970,34 @@ body {
     color: #cdd8ed;
     font-size: 13px;
     line-height: 1.6;
+}
+
+.usage-notice-text {
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.usage-notice-text p {
+    margin: 0 0 12px;
+}
+
+.usage-notice-text p:last-child {
+    margin-bottom: 0;
+}
+
+.usage-notice-option {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #d7e0f1;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.usage-notice-option input {
+    accent-color: #4b6185;
 }
 
 .audio-permission-actions {
@@ -999,4 +1033,8 @@ body {
 
 .audio-permission-btn-primary:hover {
     background: #4b6185;
+}
+
+.leaflet-proxy, .leaflet-pane {
+    transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1) !important;
 }
