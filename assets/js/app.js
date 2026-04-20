@@ -465,6 +465,7 @@ const EEW_HTTP_CONFIG = {
     // Worker allowlist is currently K-MONI only, so EEW snapshot stays direct.
     snapshotProxyPrefix: null,
     finalHideAfterMs: 5 * 60 * 1000,
+    nonFinalHideAfterMs: 5 * 60 * 1000,
 };
 
 const TEST_EEW_ANNOUNCE_POLL_MS = 250;
@@ -1555,11 +1556,14 @@ function getEewAnnouncedMillis(eew) {
 }
 
 function isFinalReportExpired(eew, nowMs = Date.now()) {
-    if (!eew?.isFinal) return false;
-
     const announcedMs = getEewAnnouncedMillis(eew);
     if (!Number.isFinite(announcedMs)) return false;
-    return nowMs - announcedMs >= EEW_HTTP_CONFIG.finalHideAfterMs;
+
+    const hideAfterMs = eew?.isFinal
+        ? EEW_HTTP_CONFIG.finalHideAfterMs
+        : EEW_HTTP_CONFIG.nonFinalHideAfterMs;
+
+    return nowMs - announcedMs >= hideAfterMs;
 }
 
 function normalizeEewPayload(raw) {
@@ -1856,6 +1860,8 @@ function renderEarthquakeOnMap(eq, options = {}) {
 }
 
 function getActiveEewEq() {
+    const activeRaw = getActiveEewRaw();
+    if (!activeRaw) return null;
     return getCurrentEewEq();
 }
 
@@ -2020,8 +2026,7 @@ function updateWaveFronts(nowMs) {
     const depthKm = parseDepthKm(hypocenter?.depth);
 
     const activeEewRaw = getActiveEewRaw();
-    const isFinalReport = !!(activeEewRaw && activeEewRaw.isFinal);
-    if (isFinalReport && isFinalReportExpired(activeEewRaw, nowForWaveMs)) {
+    if (!activeEewRaw || isFinalReportExpired(activeEewRaw, nowForWaveMs)) {
         clearCurrentEewDisplay();
         return;
     }
