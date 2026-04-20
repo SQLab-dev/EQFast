@@ -1061,7 +1061,7 @@ function updateData() {
 
                 const latestDetailScaleKey = getDetailScaleUpdateKey(latest);
                 if (latestDetailScaleKey) {
-                    if (lastSeenLatestDetailScaleKey && latestDetailScaleKey !== lastSeenLatestDetailScaleKey && activeEewEq) {
+                    if (latestDetailScaleKey !== lastSeenLatestDetailScaleKey && activeEewEq) {
                         // EEW発表中に新しい地震情報が来たら通常表示へ切り替える。
                         preferLatestEqDuringEew = true;
                     }
@@ -1073,8 +1073,7 @@ function updateData() {
                     preferLatestEqDuringEew = false;
                     lastSeenActiveEewUpdateKey = '';
                 } else if (activeEewUpdateKey !== lastSeenActiveEewUpdateKey) {
-                    // EEW続報が来たらEEW表示へ戻す。
-                    preferLatestEqDuringEew = false;
+                    // EEW続報が来ても、地震情報表示へ切り替え済みならその状態を維持する。
                     lastSeenActiveEewUpdateKey = activeEewUpdateKey;
                 }
 
@@ -1310,10 +1309,13 @@ function applyEewUpdate(source, raw, options = {}) {
     setEewState(source, { raw: normalized, eq });
 
     if (source === getCurrentEewSource()) {
-        preferLatestEqDuringEew = false;
-        refreshDisplayedEarthquake({ autoMove, forceEewFocus: true });
+        const shouldKeepLatestDisplay = preferLatestEqDuringEew && Boolean(latestDetailScaleEarthquake);
+        if (!shouldKeepLatestDisplay) {
+            preferLatestEqDuringEew = false;
+        }
+        refreshDisplayedEarthquake({ autoMove, forceEewFocus: !shouldKeepLatestDisplay });
         if (updateCard) {
-            updateEewCard(normalized);
+            updateEewCard(shouldKeepLatestDisplay ? null : normalized);
         }
     }
 
@@ -2523,7 +2525,7 @@ function updateEewCard(eew) {
     const card = document.getElementById('eew-card');
     if (!card) return;
 
-    if (!eew || eew.isCancel) {
+    if (preferLatestEqDuringEew || !eew || eew.isCancel) {
         card.hidden = true;
         return;
     }
