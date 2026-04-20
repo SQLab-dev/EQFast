@@ -1,0 +1,3011 @@
+[
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/08 21:33:58.555",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 29.4,
+        "longitude": 129.2,
+        "magnitude": 2.7,
+        "name": "トカラ列島近海"
+      },
+      "maxScale": 10,
+      "time": "2025/12/08 21:30:00"
+    },
+    "id": "6936c5b664680b00075b5b22",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/08 21:33:24",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "鹿児島十島村悪石島",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/08 21:33:25.422",
+    "timestamp": {
+      "convert": "2025/12/08 21:33:25.332",
+      "register": "2025/12/08 21:33:25.422"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/08 07:48:44.012",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 60,
+        "latitude": 36.1,
+        "longitude": 139.7,
+        "magnitude": 3.1,
+        "name": "埼玉県北部"
+      },
+      "maxScale": 10,
+      "time": "2025/12/08 07:45:00"
+    },
+    "id": "6936044c64680b00075b59f2",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/08 07:48:11",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "板倉町板倉",
+        "isArea": false,
+        "pref": "群馬県",
+        "scale": 10
+      },
+      {
+        "addr": "加須市大利根",
+        "isArea": false,
+        "pref": "埼玉県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/08 07:48:11.721",
+    "timestamp": {
+      "convert": "2025/12/08 07:48:11.714",
+      "register": "2025/12/08 07:48:11.721"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/08 04:59:42.604",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 20,
+        "latitude": 29.4,
+        "longitude": 129.5,
+        "magnitude": 2.3,
+        "name": "トカラ列島近海"
+      },
+      "maxScale": 10,
+      "time": "2025/12/08 04:55:00"
+    },
+    "id": "6935dcae64680b00075b59b3",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/08 04:59:10",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "鹿児島十島村悪石島",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/08 04:59:11.615",
+    "timestamp": {
+      "convert": "2025/12/08 04:59:11.591",
+      "register": "2025/12/08 04:59:11.615"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/07 21:04:48.287",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 41.2,
+        "longitude": 141.3,
+        "magnitude": 2.8,
+        "name": "青森県下北地方"
+      },
+      "maxScale": 10,
+      "time": "2025/12/07 21:01:00"
+    },
+    "id": "69356d6064680b00075b5926",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/07 21:04:15",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "むつ市金曲",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "東通村砂子又蒲谷地",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "東通村白糠",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "東通村砂子又沢内",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/07 21:04:16.201",
+    "timestamp": {
+      "convert": "2025/12/07 21:04:16.195",
+      "register": "2025/12/07 21:04:16.201"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/07 18:36:39.667",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 50,
+        "latitude": 41.6,
+        "longitude": 142.1,
+        "magnitude": 3.3,
+        "name": "浦河沖"
+      },
+      "maxScale": 10,
+      "time": "2025/12/07 18:33:00"
+    },
+    "id": "69354aa764680b00075b58e8",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/07 18:36:07",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "東通村砂子又沢内",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/07 18:36:07.62",
+    "timestamp": {
+      "convert": "2025/12/07 18:36:07.573",
+      "register": "2025/12/07 18:36:07.62"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/07 09:35:39.157",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 40,
+        "latitude": 31.7,
+        "longitude": 132.2,
+        "magnitude": 4.3,
+        "name": "日向灘"
+      },
+      "maxScale": 10,
+      "time": "2025/12/07 09:31:00"
+    },
+    "id": "6934cbdb64680b00075b5824",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/07 09:35:05",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "佐伯市蒲江蒲江浦",
+        "isArea": false,
+        "pref": "大分県",
+        "scale": 10
+      },
+      {
+        "addr": "西都市上の宮",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "西都市聖陵町",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "高鍋町上江",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "川南町川南",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "門川町平城東",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "宮崎美郷町田代",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "宮崎市霧島",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "宮崎市松橋",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "宮崎市田野町体育館",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "宮崎市高岡町内山",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "宮崎市清武町西新町",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "日南市油津",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "日南市吾田東",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "日南市中央通",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "串間市奈留",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "串間市役所",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "国富町本庄",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "都城市菖蒲原",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "小林市真方",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "小林市野尻町東麓",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "三股町五本松",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "鹿児島市喜入町",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      },
+      {
+        "addr": "霧島市福山町牧之原",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      },
+      {
+        "addr": "鹿屋市新栄町",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      },
+      {
+        "addr": "鹿屋市札元",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      },
+      {
+        "addr": "垂水市田神",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      },
+      {
+        "addr": "大崎町仮宿",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/07 09:35:06.269",
+    "timestamp": {
+      "convert": "2025/12/07 09:35:06.261",
+      "register": "2025/12/07 09:35:06.269"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/07 09:20:33.874",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 39.5,
+        "longitude": 143.4,
+        "magnitude": 4.8,
+        "name": "三陸沖"
+      },
+      "maxScale": 20,
+      "time": "2025/12/07 09:16:00"
+    },
+    "id": "6934c85164680b00075b5816",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/07 09:20:18",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "盛岡市薮川",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 20
+      },
+      {
+        "addr": "盛岡市山王町",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "八幡平市田頭",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "矢巾町南矢幅",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "宮古市田老",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "山田町大沢",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "八戸市南郷",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "七戸町森ノ上",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "五戸町古舘",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "青森南部町苫米地",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "階上町道仏",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/07 09:20:19.293",
+    "timestamp": {
+      "convert": "2025/12/07 09:20:19.282",
+      "register": "2025/12/07 09:20:19.293"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": "ＰＴＷＣでは７日０５時４９分に津波情報を発表しています。"
+    },
+    "created_at": "2025/12/07 06:16:16.618",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "None",
+      "hypocenter": {
+        "depth": -1,
+        "latitude": 60.4,
+        "longitude": -139.5,
+        "magnitude": 7,
+        "name": "米国、アラスカ州南東部"
+      },
+      "maxScale": -1,
+      "time": "2025/12/07 05:42:00"
+    },
+    "id": "69349d2064680b00075b57c8",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/07 06:15:43",
+      "type": "Foreign"
+    },
+    "points": [],
+    "time": "2025/12/07 06:15:44.955",
+    "timestamp": {
+      "convert": "2025/12/07 06:15:44.95",
+      "register": "2025/12/07 06:15:44.955"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/07 05:33:10.871",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 33.6,
+        "longitude": 133.6,
+        "magnitude": 2.7,
+        "name": "高知県中部"
+      },
+      "maxScale": 10,
+      "time": "2025/12/07 05:30:00"
+    },
+    "id": "6934930664680b00075b57b7",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/07 05:32:37",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "高知市春野町芳原",
+        "isArea": false,
+        "pref": "高知県",
+        "scale": 10
+      },
+      {
+        "addr": "香美市土佐山田町宝町",
+        "isArea": false,
+        "pref": "高知県",
+        "scale": 10
+      },
+      {
+        "addr": "香美市土佐山田町岩積",
+        "isArea": false,
+        "pref": "高知県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/07 05:32:38.715",
+    "timestamp": {
+      "convert": "2025/12/07 05:32:38.674",
+      "register": "2025/12/07 05:32:38.715"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/07 01:55:40.122",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 35.6,
+        "longitude": 136.4,
+        "magnitude": 2.6,
+        "name": "岐阜県美濃中西部"
+      },
+      "maxScale": 10,
+      "time": "2025/12/07 01:52:00"
+    },
+    "id": "6934600c64680b00075b5766",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/07 01:55:06",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "揖斐川町東杉原",
+        "isArea": false,
+        "pref": "岐阜県",
+        "scale": 10
+      },
+      {
+        "addr": "揖斐川町東津汲",
+        "isArea": false,
+        "pref": "岐阜県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/07 01:55:07.118",
+    "timestamp": {
+      "convert": "2025/12/07 01:55:07.113",
+      "register": "2025/12/07 01:55:07.118"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/06 20:54:46.673",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 33.9,
+        "longitude": 135.1,
+        "magnitude": 3.1,
+        "name": "和歌山県北部"
+      },
+      "maxScale": 10,
+      "time": "2025/12/06 20:52:00"
+    },
+    "id": "6934198664680b00075b56f4",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/06 20:54:41",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "御坊市湯川",
+        "isArea": false,
+        "pref": "和歌山県",
+        "scale": 10
+      },
+      {
+        "addr": "由良町里",
+        "isArea": false,
+        "pref": "和歌山県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/06 20:54:42.954",
+    "timestamp": {
+      "convert": "2025/12/06 20:54:42.947",
+      "register": "2025/12/06 20:54:42.954"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/06 17:18:10.435",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 40,
+        "latitude": 31.2,
+        "longitude": 131.5,
+        "magnitude": 3.2,
+        "name": "大隅半島東方沖"
+      },
+      "maxScale": 10,
+      "time": "2025/12/06 17:15:00"
+    },
+    "id": "6933e6c264680b00075b56a4",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/06 17:17:37",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "日南市吾田東",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "日南市中央通",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "鹿屋市新栄町",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/06 17:17:37.628",
+    "timestamp": {
+      "convert": "2025/12/06 17:17:37.61",
+      "register": "2025/12/06 17:17:37.628"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/06 12:30:03.213",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 20,
+        "latitude": 29.3,
+        "longitude": 129.4,
+        "magnitude": 2.6,
+        "name": "トカラ列島近海"
+      },
+      "maxScale": 10,
+      "time": "2025/12/06 12:26:00"
+    },
+    "id": "6933a33b64680b00075b5636",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/06 12:29:31",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "鹿児島十島村悪石島",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/06 12:29:32.755",
+    "timestamp": {
+      "convert": "2025/12/06 12:29:32.547",
+      "register": "2025/12/06 12:29:32.756"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/06 00:04:13.857",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 24.4,
+        "longitude": 123.8,
+        "magnitude": 2.7,
+        "name": "西表島付近"
+      },
+      "maxScale": 10,
+      "time": "2025/12/06 00:01:00"
+    },
+    "id": "6932f46d64680b00075b5524",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/06 00:04:00",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "竹富町上原青年会館",
+        "isArea": false,
+        "pref": "沖縄県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/06 00:04:01.098",
+    "timestamp": {
+      "convert": "2025/12/06 00:04:01.085",
+      "register": "2025/12/06 00:04:01.098"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 19:23:25.339",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 20,
+        "latitude": 29.3,
+        "longitude": 129.5,
+        "magnitude": 2.3,
+        "name": "トカラ列島近海"
+      },
+      "maxScale": 10,
+      "time": "2025/12/05 19:19:00"
+    },
+    "id": "6932b29d64680b00075b54b6",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 19:22:52",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "鹿児島十島村悪石島",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/05 19:22:53.838",
+    "timestamp": {
+      "convert": "2025/12/05 19:22:53.831",
+      "register": "2025/12/05 19:22:53.838"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 19:04:33.934",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 20,
+        "latitude": 29.4,
+        "longitude": 129.5,
+        "magnitude": 2.5,
+        "name": "トカラ列島近海"
+      },
+      "maxScale": 10,
+      "time": "2025/12/05 19:01:00"
+    },
+    "id": "6932ae3164680b00075b54ad",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 19:04:02",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "鹿児島十島村悪石島",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/05 19:04:02.757",
+    "timestamp": {
+      "convert": "2025/12/05 19:04:02.614",
+      "register": "2025/12/05 19:04:02.758"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 15:12:52.094",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 0,
+        "latitude": 36.7,
+        "longitude": 138.2,
+        "magnitude": 2.3,
+        "name": "長野県北部"
+      },
+      "maxScale": 10,
+      "time": "2025/12/05 15:09:00"
+    },
+    "id": "693277e464680b00075b5451",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 15:12:24",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "長野市戸隠",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "長野市鬼無里",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "長野市中条",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "信濃町柏原東裏",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/05 15:12:25.824",
+    "timestamp": {
+      "convert": "2025/12/05 15:12:25.77",
+      "register": "2025/12/05 15:12:25.824"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 12:14:55.467",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 0,
+        "latitude": 33,
+        "longitude": 131.1,
+        "magnitude": 3.2,
+        "name": "熊本県阿蘇地方"
+      },
+      "maxScale": 30,
+      "time": "2025/12/05 12:11:00"
+    },
+    "id": "69324e2f64680b00075b540b",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 12:14:49",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "阿蘇市一の宮町",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 30
+      },
+      {
+        "addr": "阿蘇市内牧",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 20
+      },
+      {
+        "addr": "阿蘇市波野",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 10
+      },
+      {
+        "addr": "南阿蘇村中松",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 20
+      },
+      {
+        "addr": "産山村山鹿",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 10
+      },
+      {
+        "addr": "熊本高森町高森",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 10
+      },
+      {
+        "addr": "豊後大野市三重町",
+        "isArea": false,
+        "pref": "大分県",
+        "scale": 10
+      },
+      {
+        "addr": "竹田市荻町",
+        "isArea": false,
+        "pref": "大分県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/05 12:14:50.052",
+    "timestamp": {
+      "convert": "2025/12/05 12:14:50.046",
+      "register": "2025/12/05 12:14:50.052"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 12:14:20.447",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 0,
+        "latitude": 33,
+        "longitude": 131.1,
+        "magnitude": 3.2,
+        "name": "熊本県阿蘇地方"
+      },
+      "maxScale": -1,
+      "time": "2025/12/05 12:11:00"
+    },
+    "id": "69324e0c64680b00075b5405",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 12:13:49",
+      "type": "Destination"
+    },
+    "points": [],
+    "time": "2025/12/05 12:13:49.429",
+    "timestamp": {
+      "convert": "2025/12/05 12:13:49.424",
+      "register": "2025/12/05 12:13:49.429"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 12:13:31.412",
+    "earthquake": {
+      "domesticTsunami": "Checking",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": -1,
+        "latitude": -200,
+        "longitude": -200,
+        "magnitude": -1,
+        "name": ""
+      },
+      "maxScale": 30,
+      "time": "2025/12/05 12:11:00"
+    },
+    "id": "69324ddb64680b00075b5400",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 12:12:57",
+      "type": "ScalePrompt"
+    },
+    "points": [
+      {
+        "addr": "熊本県阿蘇",
+        "isArea": true,
+        "pref": "熊本県",
+        "scale": 30
+      }
+    ],
+    "time": "2025/12/05 12:12:58.888",
+    "timestamp": {
+      "convert": "2025/12/05 12:12:58.842",
+      "register": "2025/12/05 12:12:58.888"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 11:08:28.253",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 0,
+        "latitude": 36.7,
+        "longitude": 138.2,
+        "magnitude": 2.5,
+        "name": "長野県北部"
+      },
+      "maxScale": 10,
+      "time": "2025/12/05 11:04:00"
+    },
+    "id": "69323e9c64680b00075b53e3",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 11:07:55",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "長野市箱清水",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "長野市戸隠",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "信濃町柏原東裏",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "飯綱町芋川",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "飯綱町牟礼",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/05 11:07:56.269",
+    "timestamp": {
+      "convert": "2025/12/05 11:07:56.263",
+      "register": "2025/12/05 11:07:56.269"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 10:25:25.431",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 0,
+        "latitude": 33,
+        "longitude": 131.1,
+        "magnitude": 2.5,
+        "name": "熊本県阿蘇地方"
+      },
+      "maxScale": 10,
+      "time": "2025/12/05 10:22:00"
+    },
+    "id": "6932348564680b00075b53cc",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 10:24:51",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "阿蘇市一の宮町",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 10
+      },
+      {
+        "addr": "南阿蘇村中松",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/05 10:24:52.613",
+    "timestamp": {
+      "convert": "2025/12/05 10:24:52.604",
+      "register": "2025/12/05 10:24:52.613"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/05 08:20:25.088",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 0,
+        "latitude": 36.7,
+        "longitude": 138.2,
+        "magnitude": 2.3,
+        "name": "長野県北部"
+      },
+      "maxScale": 10,
+      "time": "2025/12/05 08:17:00"
+    },
+    "id": "6932173964680b00075b539b",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/05 08:19:52",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "妙高市田口",
+        "isArea": false,
+        "pref": "新潟県",
+        "scale": 10
+      },
+      {
+        "addr": "長野市箱清水",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "長野市戸隠",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "長野市鬼無里",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "長野市中条",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "信濃町柏原東裏",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      },
+      {
+        "addr": "飯綱町牟礼",
+        "isArea": false,
+        "pref": "長野県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/05 08:19:53.786",
+    "timestamp": {
+      "convert": "2025/12/05 08:19:53.773",
+      "register": "2025/12/05 08:19:53.786"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/04 23:02:17.281",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 30,
+        "latitude": 33.8,
+        "longitude": 134.1,
+        "magnitude": 3.1,
+        "name": "徳島県南部"
+      },
+      "maxScale": 10,
+      "time": "2025/12/04 22:59:00"
+    },
+    "id": "6931946964680b00075b52d3",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/04 23:01:55",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "美馬市木屋平",
+        "isArea": false,
+        "pref": "徳島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/04 23:01:56.2",
+    "timestamp": {
+      "convert": "2025/12/04 23:01:56.188",
+      "register": "2025/12/04 23:01:56.2"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/04 21:15:05.346",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 20,
+        "latitude": 32,
+        "longitude": 132,
+        "magnitude": 3.5,
+        "name": "日向灘"
+      },
+      "maxScale": 10,
+      "time": "2025/12/04 21:11:00"
+    },
+    "id": "69317b4964680b00075b52a4",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/04 21:14:34",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "日向市大王谷運動公園",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "西都市上の宮",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "高鍋町上江",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "川南町川南",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "宮崎都農町役場",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      },
+      {
+        "addr": "宮崎美郷町田代",
+        "isArea": false,
+        "pref": "宮崎県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/04 21:14:35.246",
+    "timestamp": {
+      "convert": "2025/12/04 21:14:35.215",
+      "register": "2025/12/04 21:14:35.246"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/04 18:07:26.888",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 50,
+        "latitude": 42.8,
+        "longitude": 143.2,
+        "magnitude": 3.6,
+        "name": "十勝地方中部"
+      },
+      "maxScale": 20,
+      "time": "2025/12/04 18:04:00"
+    },
+    "id": "69314f4e64680b00075b5254",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/04 18:06:54",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "浦幌町桜町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "十勝池田町西１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "豊頃町茂岩本町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "本別町北２丁目",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "本別町向陽町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "新得町２条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "足寄町南１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "白糠町西１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/04 18:06:55.256",
+    "timestamp": {
+      "convert": "2025/12/04 18:06:55.241",
+      "register": "2025/12/04 18:06:55.257"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/04 08:40:22.920",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 37.1,
+        "longitude": 140.8,
+        "magnitude": 3.8,
+        "name": "福島県浜通り"
+      },
+      "maxScale": 20,
+      "time": "2025/12/04 08:37:00"
+    },
+    "id": "6930ca6664680b00075b5177",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/04 08:40:17",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "いわき市三和町",
+        "isArea": false,
+        "pref": "福島県",
+        "scale": 20
+      },
+      {
+        "addr": "いわき市平四ツ波",
+        "isArea": false,
+        "pref": "福島県",
+        "scale": 20
+      },
+      {
+        "addr": "いわき市平梅本",
+        "isArea": false,
+        "pref": "福島県",
+        "scale": 20
+      },
+      {
+        "addr": "いわき市小名浜",
+        "isArea": false,
+        "pref": "福島県",
+        "scale": 10
+      },
+      {
+        "addr": "いわき市錦町",
+        "isArea": false,
+        "pref": "福島県",
+        "scale": 10
+      },
+      {
+        "addr": "福島広野町下北迫大谷地原",
+        "isArea": false,
+        "pref": "福島県",
+        "scale": 10
+      },
+      {
+        "addr": "棚倉町棚倉中居野",
+        "isArea": false,
+        "pref": "福島県",
+        "scale": 10
+      },
+      {
+        "addr": "古殿町松川横川",
+        "isArea": false,
+        "pref": "福島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/04 08:40:17.807",
+    "timestamp": {
+      "convert": "2025/12/04 08:40:17.791",
+      "register": "2025/12/04 08:40:17.807"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/03 23:44:22.061",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 50,
+        "latitude": 38.3,
+        "longitude": 141.9,
+        "magnitude": 4.1,
+        "name": "宮城県沖"
+      },
+      "maxScale": 10,
+      "time": "2025/12/03 23:41:00"
+    },
+    "id": "69304cc664680b00075b50a0",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/03 23:43:50",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "大船渡市大船渡町",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "一関市千厩町",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "一関市室根町",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "一関市藤沢町",
+        "isArea": false,
+        "pref": "岩手県",
+        "scale": 10
+      },
+      {
+        "addr": "気仙沼市赤岩",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "気仙沼市笹が陣",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "登米市東和町",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "登米市豊里町",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "名取市増田",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "石巻市鮎川浜",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "石巻市大街道南",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "石巻市北上町",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "石巻市桃生町",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      },
+      {
+        "addr": "石巻市雄勝町",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/03 23:43:50.778",
+    "timestamp": {
+      "convert": "2025/12/03 23:43:50.772",
+      "register": "2025/12/03 23:43:50.778"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/03 22:21:43.565",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 37.5,
+        "longitude": 137.2,
+        "magnitude": 3.2,
+        "name": "石川県能登地方"
+      },
+      "maxScale": 10,
+      "time": "2025/12/03 22:19:00"
+    },
+    "id": "6930396764680b00075b505d",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/03 22:21:33",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "珠洲市正院町",
+        "isArea": false,
+        "pref": "石川県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/03 22:21:34.098",
+    "timestamp": {
+      "convert": "2025/12/03 22:21:34.074",
+      "register": "2025/12/03 22:21:34.098"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/03 22:20:08.497",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 60,
+        "latitude": 38.4,
+        "longitude": 141.7,
+        "magnitude": 3.3,
+        "name": "宮城県沖"
+      },
+      "maxScale": 10,
+      "time": "2025/12/03 22:17:00"
+    },
+    "id": "6930390864680b00075b5054",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/03 22:19:49",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "石巻市北上町",
+        "isArea": false,
+        "pref": "宮城県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/03 22:19:50.55",
+    "timestamp": {
+      "convert": "2025/12/03 22:19:50.429",
+      "register": "2025/12/03 22:19:50.551"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/03 15:24:28.017",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 40,
+        "latitude": 42.4,
+        "longitude": 144,
+        "magnitude": 4,
+        "name": "十勝沖"
+      },
+      "maxScale": 10,
+      "time": "2025/12/03 15:20:00"
+    },
+    "id": "692fd79c64680b00075b4fab",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/03 15:23:55",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "足寄町南１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "幕別町本町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "十勝池田町西１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "豊頃町茂岩本町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "本別町北２丁目",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "本別町向陽町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "浦幌町桜町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "弟子屈町弟子屈",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "釧路市幸町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "釧路市阿寒町中央",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "釧路市音別町中園",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "標茶町塘路",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "鶴居村鶴居東",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "白糠町西１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "標津町北２条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "別海町常盤",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "別海町本別海",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/03 15:23:55.281",
+    "timestamp": {
+      "convert": "2025/12/03 15:23:55.265",
+      "register": "2025/12/03 15:23:55.281"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/03 09:42:52.767",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 110,
+        "latitude": 35.5,
+        "longitude": 139.3,
+        "magnitude": 3.4,
+        "name": "神奈川県西部"
+      },
+      "maxScale": 20,
+      "time": "2025/12/03 09:39:00"
+    },
+    "id": "692f878c64680b00075b4f28",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/03 09:42:23",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "厚木市中町",
+        "isArea": false,
+        "pref": "神奈川県",
+        "scale": 20
+      },
+      {
+        "addr": "清川村煤ヶ谷",
+        "isArea": false,
+        "pref": "神奈川県",
+        "scale": 10
+      },
+      {
+        "addr": "横浜緑区十日市場町",
+        "isArea": false,
+        "pref": "神奈川県",
+        "scale": 10
+      },
+      {
+        "addr": "宇都宮市明保野町",
+        "isArea": false,
+        "pref": "栃木県",
+        "scale": 10
+      },
+      {
+        "addr": "東京千代田区大手町",
+        "isArea": false,
+        "pref": "東京都",
+        "scale": 10
+      },
+      {
+        "addr": "大月市御太刀",
+        "isArea": false,
+        "pref": "山梨県",
+        "scale": 10
+      },
+      {
+        "addr": "上野原市役所",
+        "isArea": false,
+        "pref": "山梨県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/03 09:42:24.127",
+    "timestamp": {
+      "convert": "2025/12/03 09:42:24.119",
+      "register": "2025/12/03 09:42:24.127"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/03 05:07:54.716",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 33,
+        "longitude": 131.1,
+        "magnitude": 2.2,
+        "name": "熊本県阿蘇地方"
+      },
+      "maxScale": 10,
+      "time": "2025/12/03 05:03:00"
+    },
+    "id": "692f471a64680b00075b4e75",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/03 05:07:21",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "阿蘇市一の宮町",
+        "isArea": false,
+        "pref": "熊本県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/03 05:07:22.371",
+    "timestamp": {
+      "convert": "2025/12/03 05:07:22.364",
+      "register": "2025/12/03 05:07:22.371"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/03 04:57:24.553",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 29.3,
+        "longitude": 129.6,
+        "magnitude": 2.2,
+        "name": "トカラ列島近海"
+      },
+      "maxScale": 10,
+      "time": "2025/12/03 04:53:00"
+    },
+    "id": "692f44a464680b00075b4e6f",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/03 04:56:52",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "鹿児島十島村悪石島",
+        "isArea": false,
+        "pref": "鹿児島県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/03 04:56:53.144",
+    "timestamp": {
+      "convert": "2025/12/03 04:56:53.136",
+      "register": "2025/12/03 04:56:53.144"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/02 23:48:58.776",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 35.3,
+        "longitude": 138.7,
+        "magnitude": 2.4,
+        "name": "静岡県東部"
+      },
+      "maxScale": 30,
+      "time": "2025/12/02 23:44:00"
+    },
+    "id": "692efc5a64680b00075b4dfc",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/02 23:48:27",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "富士市大淵",
+        "isArea": false,
+        "pref": "静岡県",
+        "scale": 30
+      },
+      {
+        "addr": "富士宮市野中",
+        "isArea": false,
+        "pref": "静岡県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/02 23:48:28.632",
+    "timestamp": {
+      "convert": "2025/12/02 23:48:28.63",
+      "register": "2025/12/02 23:48:28.632"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/02 23:48:25.757",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 35.3,
+        "longitude": 138.7,
+        "magnitude": 2.4,
+        "name": "静岡県東部"
+      },
+      "maxScale": -1,
+      "time": "2025/12/02 23:44:00"
+    },
+    "id": "692efc3964680b00075b4df9",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/02 23:47:52",
+      "type": "Destination"
+    },
+    "points": [],
+    "time": "2025/12/02 23:47:53.154",
+    "timestamp": {
+      "convert": "2025/12/02 23:47:53.15",
+      "register": "2025/12/02 23:47:53.154"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/02 23:47:44.735",
+    "earthquake": {
+      "domesticTsunami": "Checking",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": -1,
+        "latitude": -200,
+        "longitude": -200,
+        "magnitude": -1,
+        "name": ""
+      },
+      "maxScale": 30,
+      "time": "2025/12/02 23:44:00"
+    },
+    "id": "692efc1064680b00075b4df4",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/02 23:47:11",
+      "type": "ScalePrompt"
+    },
+    "points": [
+      {
+        "addr": "静岡県東部",
+        "isArea": true,
+        "pref": "静岡県",
+        "scale": 30
+      }
+    ],
+    "time": "2025/12/02 23:47:13.994",
+    "timestamp": {
+      "convert": "2025/12/02 23:47:13.989",
+      "register": "2025/12/02 23:47:13.994"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/02 23:06:07.034",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 10,
+        "latitude": 37.5,
+        "longitude": 137.1,
+        "magnitude": 2.8,
+        "name": "能登半島沖"
+      },
+      "maxScale": 10,
+      "time": "2025/12/02 23:02:00"
+    },
+    "id": "692ef24f64680b00075b4dda",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/02 23:05:33",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "珠洲市大谷町",
+        "isArea": false,
+        "pref": "石川県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/02 23:05:33.886",
+    "timestamp": {
+      "convert": "2025/12/02 23:05:33.77",
+      "register": "2025/12/02 23:05:33.887"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/02 20:10:34.169",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 20,
+        "latitude": 34.5,
+        "longitude": 139.5,
+        "magnitude": 4.3,
+        "name": "新島・神津島近海"
+      },
+      "maxScale": 20,
+      "time": "2025/12/02 20:07:00"
+    },
+    "id": "692ec92a64680b00075b4d8a",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/02 20:10:05",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "伊豆大島町差木地",
+        "isArea": false,
+        "pref": "東京都",
+        "scale": 20
+      },
+      {
+        "addr": "伊豆大島町波浮港",
+        "isArea": false,
+        "pref": "東京都",
+        "scale": 20
+      },
+      {
+        "addr": "伊豆大島町元町",
+        "isArea": false,
+        "pref": "東京都",
+        "scale": 10
+      },
+      {
+        "addr": "東京利島村東山",
+        "isArea": false,
+        "pref": "東京都",
+        "scale": 20
+      },
+      {
+        "addr": "新島村大原",
+        "isArea": false,
+        "pref": "東京都",
+        "scale": 10
+      },
+      {
+        "addr": "新島村式根島",
+        "isArea": false,
+        "pref": "東京都",
+        "scale": 10
+      },
+      {
+        "addr": "新島村本村",
+        "isArea": false,
+        "pref": "東京都",
+        "scale": 10
+      },
+      {
+        "addr": "横浜中区山手町",
+        "isArea": false,
+        "pref": "神奈川県",
+        "scale": 10
+      },
+      {
+        "addr": "伊豆市中伊豆グラウンド",
+        "isArea": false,
+        "pref": "静岡県",
+        "scale": 10
+      },
+      {
+        "addr": "伊豆の国市長岡",
+        "isArea": false,
+        "pref": "静岡県",
+        "scale": 10
+      },
+      {
+        "addr": "東伊豆町奈良本",
+        "isArea": false,
+        "pref": "静岡県",
+        "scale": 10
+      },
+      {
+        "addr": "東伊豆町稲取",
+        "isArea": false,
+        "pref": "静岡県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/02 20:10:06.821",
+    "timestamp": {
+      "convert": "2025/12/02 20:10:06.814",
+      "register": "2025/12/02 20:10:06.821"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  },
+  {
+    "code": 551,
+    "comments": {
+      "freeFormComment": ""
+    },
+    "created_at": "2025/12/02 19:08:03.632",
+    "earthquake": {
+      "domesticTsunami": "None",
+      "foreignTsunami": "Unknown",
+      "hypocenter": {
+        "depth": 40,
+        "latitude": 43,
+        "longitude": 145.5,
+        "magnitude": 5.2,
+        "name": "根室半島南東沖"
+      },
+      "maxScale": 40,
+      "time": "2025/12/02 19:03:00"
+    },
+    "id": "692eba8364680b00075b4d41",
+    "issue": {
+      "correct": "None",
+      "source": "気象庁",
+      "time": "2025/12/02 19:07:31",
+      "type": "DetailScale"
+    },
+    "points": [
+      {
+        "addr": "釧路市黒金町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 40
+      },
+      {
+        "addr": "釧路市幸町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "釧路市阿寒町中央",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "釧路市阿寒町阿寒湖温泉",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "釧路市音別町中園",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "浜中町湯沸",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 40
+      },
+      {
+        "addr": "浜中町茶内",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 40
+      },
+      {
+        "addr": "厚岸町尾幌",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "厚岸町真栄",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "標茶町塘路",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "標茶町川上",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "釧路町別保",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "鶴居村鶴居東",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "白糠町西１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "中標津町養老牛",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 40
+      },
+      {
+        "addr": "中標津町丸山",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "標津町北２条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 40
+      },
+      {
+        "addr": "標津町薫別",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "標津町古多糠",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "羅臼町岬町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "羅臼町春日",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "羅臼町緑町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "別海町常盤",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 40
+      },
+      {
+        "addr": "別海町西春別",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "別海町本別海",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "根室市牧の内",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 40
+      },
+      {
+        "addr": "根室市厚床",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 40
+      },
+      {
+        "addr": "根室市落石東",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "根室市珸瑤瑁",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 30
+      },
+      {
+        "addr": "根室市豊里",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "斜里町ウトロ香川",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "斜里町本町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "清里町羽衣町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "小清水町小清水",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "網走市台町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "網走市北２条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "美幌町東３条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "大空町東藻琴",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "大空町女満別西３条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "新冠町北星町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "新ひだか町静内山手町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "新ひだか町静内御幸町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "新ひだか町三石旭町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "新得町２条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "足寄町上螺湾",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "足寄町南１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "鹿追町東町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "陸別町陸別",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "十勝清水町南４条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "十勝池田町西１条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "本別町北２丁目",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "本別町向陽町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "浦幌町桜町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "帯広市東４条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "帯広市東６条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "音更町元町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "芽室町東２条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "幕別町忠類明和",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "幕別町忠類錦町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "幕別町本町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "豊頃町茂岩本町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "弟子屈町美里",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "弟子屈町弟子屈",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "弟子屈町サワンチサップ",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 20
+      },
+      {
+        "addr": "新千歳空港",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "千歳市支笏湖温泉",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "函館市泊町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "函館市新浜町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "南富良野町役場",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "北見市公園町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "北見市常呂町東浜",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "北見市留辺蘂町温根湯温泉",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "北見市留辺蘂町栄町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "置戸町拓殖",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "白老町竹浦",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "厚真町鹿沼",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "安平町早来北進",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "安平町追分柏が丘",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "むかわ町松風",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "浦河町野深",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "浦河町潮見",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "浦河町築地",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "様似町栄町",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "えりも町目黒",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "中札内村東２条",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "更別村更別",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "十勝大樹町東本通",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "広尾町並木通",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "広尾町白樺通",
+        "isArea": false,
+        "pref": "北海道",
+        "scale": 10
+      },
+      {
+        "addr": "八戸市南郷",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "むつ市大畑町中島",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      },
+      {
+        "addr": "東通村砂子又沢内",
+        "isArea": false,
+        "pref": "青森県",
+        "scale": 10
+      }
+    ],
+    "time": "2025/12/02 19:07:32.704",
+    "timestamp": {
+      "convert": "2025/12/02 19:07:32.688",
+      "register": "2025/12/02 19:07:32.704"
+    },
+    "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+    "ver": "20231023"
+  }
+]

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
     <title>EQFast</title>
@@ -6,19 +6,48 @@
     <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2a364c">
-    <link rel="stylesheet" href="index.css">
-    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="assets/css/index.css">
+    <link rel="manifest" href="assets/manifest.json">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 </head>
     <body>
         <div class="side-panel">
+            <div class="eew-card" id="eew-card" hidden>
+                <h2 class="eew-card_status"></h2>
+                <p class="eew-card_date"></p>
+                <p class="eew-card_location"></p>
+                <p class="eew-card_comment"></p>
+                <div class="eew-card_maxscale three-bg">
+                    <p class="eew-card_maxscale-label">予想最大震度</p>
+                    <p class="eew-card_maxscale-txt"></p>
+                </div>
+                <div class="eew-card_hypo-params">
+                    <div class="eew-card_hypo-params_txt">
+                        <p class="eew-card_hypo-params_label">マグニチュード</p>
+                        <p class="eew-card_magnitude"></p>
+                    </div>
+                    <div class="eew-card_hypo-params_txt">
+                        <p class="eew-card_hypo-params_label">深さ</p>
+                        <p class="eew-card_depth"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="voice-settings kyoshin-detect-info" id="kyoshin-detect-card" hidden>
+                <div class="kyoshin-detect-status">
+                    <p class="kyoshin-detect-status-text kyoshin-detect-idle" id="kyoshin-detect-status-text">揺れ未検知</p>
+                    <p class="kyoshin-detect-level" id="kyoshin-detect-level">待機中</p>
+                </div>
+                <div class="kyoshin-detect-panel" id="kyoshin-detect-panel" hidden>
+                    <div class="kyoshin-detect-areas" id="kyoshin-detect-areas"></div>
+                </div>
+            </div>
+
             <div class="latest-card">
                 <p class="latest-card_title">最新の地震</p>
                 <h2 class="latest-card_tsunami"></h2>
@@ -50,7 +79,7 @@
                 <p class="voice-settings_title">音声読み上げ</p>
 
                 <div class="voice-toggle-row">
-                    <span class="voice-toggle-label">読み上げ</span>
+                    <span class="voice-toggle-label">読み上げを有効にする</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="voice-enabled-toggle">
                         <span class="toggle-slider"></span>
@@ -88,14 +117,173 @@
                 </div>
             </div>
 
-            <a class="feedback-button" href="https://forms.gle/V1J5r4MjhNfB1Tz26" target="_blank">お問い合わせ</a>
+            <div class="voice-settings">
+                <p class="voice-settings_title">効果音</p>
+
+                <div class="voice-toggle-row">
+                    <span class="voice-toggle-label">効果音を有効にする</span>
+                    <label class="toggle-switch">
+                    <input type="checkbox" id="sound-enabled-toggle" checked>
+                    <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="voice-detail" id="sound-detail">
+                    <div class="voice-divider"></div>
+
+                    <div class="voice-param-row">
+                        <span class="voice-param-label">音量</span>
+                        <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="0.8"
+                            style="flex:1; accent-color:#3e506d; margin: 0 8px; width: 100px;">
+                        <span id="sound-volume-label" class="voice-param-label">80%</span>
+                    </div>
+
+                    <div class="sound-setting-item">
+                        <span class="voice-param-label sound-setting-label">地震情報受信時</span>
+                        <div class="sound-setting-actions">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sound-earthquake-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <button class="voice-test-btn voice-test-btn-inline" id="sound-earthquake-test-btn">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                再生
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="sound-setting-item">
+                        <span class="voice-param-label sound-setting-label">緊急地震速報受信時</span>
+                        <div class="sound-setting-actions">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sound-eew-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <button class="voice-test-btn voice-test-btn-inline" id="sound-eew-test-btn">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                再生
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="sound-setting-item">
+                        <span class="voice-param-label sound-setting-label">揺れ検知時</span>
+                        <div class="sound-setting-actions">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sound-shake-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <button class="voice-test-btn voice-test-btn-inline" id="sound-shake-test-btn">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                再生
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="voice-param-row" style="margin-top:8px; justify-content:flex-start;">
+                        <div class="voice-status">
+                            <span class="voice-status-dot" id="sound-status-dot"></span>
+                            <span class="voice-status-text" id="sound-status-text">待機中</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kyoshin-settings">
+                <p class="kyoshin-settings_title">強震モニタ</p>
+                <div class="voice-toggle-row">
+                    <span class="voice-toggle-label">表示モード</span>
+                    <div class="kyoshin-mode-btns">
+                        <button class="kyoshin-mode-btn active" id="kyoshin-shindo-btn">震度</button>
+                        <button class="kyoshin-mode-btn" id="kyoshin-pga-btn">加速度</button>
+                    </div>
+                </div>
+                <div class="voice-toggle-row">
+                    <span class="voice-toggle-label">揺れ候補を表示 (低精度)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="kyoshin-show-candidates-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <a class="feedback-button" href="#" id="contact-button">お問い合わせ</a>
+            <a class="feedback-button" href="#" id="credits-button">クレジット</a>
 
         </div>
 
         <div id="map"></div>
+    <div class="last-update-badge" id="last-update-time">--/-- --:--:--</div>
 
-        <script src="source/JMAPoints.js"></script>
-        <script src="source/SmoothWheelZoom.js"></script>
-        <script src="index.js"></script>
+        <div class="audio-permission-modal" id="usage-notice-modal" hidden>
+            <div class="audio-permission-backdrop" id="usage-notice-backdrop"></div>
+            <div class="audio-permission-dialog usage-notice-dialog" role="dialog" aria-modal="true" aria-labelledby="usage-notice-title">
+                <p class="audio-permission-title" id="usage-notice-title">ご利用にあたっての注意事項</p>
+                <div class="audio-permission-text usage-notice-text">
+                    <p><strong>提供元について</strong><br>本アプリケーションは個人（または開発チーム）によって開発されたものであり、国立研究開発法人防災科学技術研究所、および各データ提供元、関係機関とは一切関係ありません。本アプリに関するお問い合わせを、各機関へ行うことは固くお断りいたします。</p>
+                    <p><strong>観測データについて</strong><br>表示されるリアルタイム観測データは、設置地点の揺れを可視化するものであり、地震の発生を予知、または事前に通知するものではありません。</p>
+                    <p><strong>免責事項</strong><br>通信状況や機器の不具合等により、観測点が異常な値を示したり、データの更新が遅延したりする場合があります。本アプリの利用により生じた損害等について、開発者は一切の責任を負いかねますので、あらかじめご了承ください。</p>
+                </div>
+                <label class="usage-notice-option" for="usage-notice-skip-next">
+                    <input type="checkbox" id="usage-notice-skip-next">
+                    <span>次回からは表示しない</span>
+                </label>
+                <div class="audio-permission-actions">
+
+                    <button class="audio-permission-btn audio-permission-btn-primary" id="usage-notice-ok-btn">確認しました</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="audio-permission-modal" id="audio-permission-modal" hidden>
+            <div class="audio-permission-backdrop" id="audio-permission-backdrop"></div>
+            <div class="audio-permission-dialog" role="dialog" aria-modal="true" aria-labelledby="audio-permission-title">
+                <p class="audio-permission-title" id="audio-permission-title">効果音の再生確認</p>
+                <p class="audio-permission-text">効果音を有効にするには、最初に再生の許可が必要です。</p>
+                <div class="audio-permission-actions">
+                    <button class="audio-permission-btn audio-permission-btn-secondary" id="audio-permission-cancel-btn">あとで</button>
+                    <button class="audio-permission-btn audio-permission-btn-primary" id="audio-permission-allow-btn">許可する</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="audio-permission-modal" id="contact-modal" hidden>
+            <div class="audio-permission-backdrop" id="contact-backdrop"></div>
+            <div class="audio-permission-dialog" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+                <p class="audio-permission-title" id="contact-title">お問い合わせ方法を選択</p>
+                <div class="audio-permission-actions" style="justify-content:flex-start; flex-wrap:wrap;">
+                    <button class="audio-permission-btn audio-permission-btn-secondary" id="contact-github-issue-btn">GitHub Issue</button>
+                    <button class="audio-permission-btn audio-permission-btn-secondary" id="contact-google-form-btn">Googleフォーム</button>
+                    <button class="audio-permission-btn audio-permission-btn-primary" id="contact-close-btn">閉じる</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="audio-permission-modal" id="credits-modal" hidden>
+            <div class="audio-permission-backdrop" id="credits-backdrop"></div>
+            <div class="audio-permission-dialog" role="dialog" aria-modal="true" aria-labelledby="credits-title">
+                <p class="audio-permission-title" id="credits-title">クレジット</p>
+                <p class="audio-permission-text"></p>
+                <p class="audio-permission-text">
+                    <a class="audio-permission-link" href="https://leafletjs.com/" target="_blank">Leaflet</a><br>
+                    <a class="audio-permission-link" href="https://www.data.jma.go.jp/developer/gis.html" target="_blank">気象庁 予報区等GISデータの一覧</a><br>
+                    <a class="audio-permission-link" href="https://github.com/mutsuyuki/Leaflet.SmoothWheelZoom" target="_blank">SmoothWheelZoom</a><br>
+                    <a class="audio-permission-link" href="https://fonts.google.com/specimen/Jost" target="_blank">Jost</a> , <a class="audio-permission-link" href="https://fonts.google.com/noto/specimen/Noto+Sans+JP?query=noto+sans+jp">Noto Sans JP</a><br>
+                    <a class="audio-permission-link" href="https://otologic.jp/" target="_blank">OtoLogic</a><br>
+                    <a class="audio-permission-link" href="https://api.wolfx.jp" target="_blank">Wolfx API</a><br>
+                    <a class="audio-permission-link" href="http://www.kmoni.bosai.go.jp/" target="_blank">防災科学技術研究所 強震モニタ</a><br>
+                    詳しくは<a href="" class="audio-permission-link">こちら</a>
+                </p>
+                <div class="audio-permission-actions">
+                    <button class="audio-permission-btn audio-permission-btn-primary" id="credits-close-btn">閉じる</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="assets/vendor/JMAPoints.js"></script>
+        <script src="assets/vendor/SmoothWheelZoom.js"></script>
+        <script src="assets/js/app.js"></script>
     </body>
 </html>
+
+
