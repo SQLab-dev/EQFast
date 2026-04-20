@@ -1027,8 +1027,32 @@ function updateData() {
                 const detailScaleData = Array.isArray(data)
                     ? data.filter(eq => eq?.issue?.type === "DetailScale")
                     : [];
-                const latest = detailScaleData[0];
-                latestDetailScaleEarthquake = latest || null;
+
+                const eqMap = new Map();
+                detailScaleData.forEach((eq) => {
+                    const key = getEarthquakeKey(eq);
+                    const existing = eqMap.get(key);
+                    if (!existing || eq.created_at > existing.created_at) {
+                        eqMap.set(key, eq);
+                    }
+                });
+
+                const deduped = Array.from(eqMap.values()).sort((a, b) => {
+                    const aTime = Date.parse(a?.created_at || a?.earthquake?.time || '');
+                    const bTime = Date.parse(b?.created_at || b?.earthquake?.time || '');
+                    if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+                        return bTime - aTime;
+                    }
+
+                    const aCreated = String(a?.created_at || '');
+                    const bCreated = String(b?.created_at || '');
+                    return bCreated.localeCompare(aCreated);
+                });
+
+                latestDetailScaleEarthquakes = deduped;
+                const latest = deduped[0] || null;
+                latestDetailScaleEarthquake = latest;
+
                 const activeEewEq = getActiveEewEq();
                 const activeEewRaw = getActiveEewRaw();
 
@@ -1053,44 +1077,8 @@ function updateData() {
                     lastSeenActiveEewUpdateKey = activeEewUpdateKey;
                 }
 
-                const eqMap = new Map();
-                detailScaleData.forEach(eq => {
-                    const key = getEarthquakeKey(eq);
-                    const existing = eqMap.get(key);
-                    if (!existing || eq.created_at > existing.created_at) {
-                        eqMap.set(key, eq);
-                    }
-                });
-
-                const deduped = Array.from(eqMap.values())
-                    .sort((a, b) => b.earthquake.time.localeCompare(a.earthquake.time));
-
-                let displayEq = latest || activeEewEq || liveEewEq;
-                if (selectedEarthquakeKey) {
-                    const selectedEq = deduped.find(eq => getEarthquakeKey(eq) === selectedEarthquakeKey);
-                    if (selectedEq) {
-                        displayEq = selectedEq;
-                    } else {
-                        selectedEarthquakeKey = null;
-                        displayEq = activeEewEq || liveEewEq || latest;
-                    }
-                } else if (activeEewEq && preferLatestEqDuringEew && latest) {
-                    displayEq = latest;
-                } else if (activeEewEq) {
-                    displayEq = activeEewEq;
-                } else if (!CONFIG.isTest && liveEewEq) {
-                    displayEq = liveEewEq;
-                }
-
-                const displayKey = getEarthquakeKey(displayEq);
-                const shouldAutoMove = displayKey !== lastRenderedEarthquakeKey;
-
-                renderEarthquakeOnMap(displayEq, { autoMove: shouldAutoMove });
-                lastRenderedEarthquakeKey = displayKey;
-
-                const latestCardEq = latest || (!CONFIG.isTest ? displayEq : null);
-                if (latestCardEq?.earthquake) {
-                    const { time, hypocenter, maxScale, domesticTsunami } = latestCardEq.earthquake;
+                if (latest?.earthquake) {
+                    const { time, hypocenter, maxScale, domesticTsunami } = latest.earthquake;
                     const { name: hyponame, magnitude, depth } = hypocenter;
 
                     const map_maxscale = scaleMap[String(maxScale)];
@@ -1109,6 +1097,7 @@ function updateData() {
                 }
 
                 updateEewCard(getActiveEewRaw());
+                refreshDisplayedEarthquake();
 
                 const latestKey = latest ? getEarthquakeKey(latest) : "";
                 const historyData = latest
@@ -1306,6 +1295,7 @@ function applyEewUpdate(source, raw, options = {}) {
         if (source === getCurrentEewSource()) {
             waveCurrentEq = null;
             hideWaveFrontLayers();
+            refreshDisplayedEarthquake();
         }
         return null;
     }
@@ -1319,7 +1309,8 @@ function applyEewUpdate(source, raw, options = {}) {
     setEewState(source, { raw: normalized, eq });
 
     if (source === getCurrentEewSource()) {
-        renderEarthquakeOnMap(eq, { autoMove });
+        preferLatestEqDuringEew = false;
+        refreshDisplayedEarthquake({ autoMove, forceEewFocus: true });
         if (updateCard) {
             updateEewCard(normalized);
         }
@@ -1833,7 +1824,7 @@ function moveCameraToEarthquake(eq) {
 
 function renderEarthquakeOnMap(eq, options = {}) {
     if (!eq || !eq.earthquake) return;
-    const { autoMove = false } = options;
+    const { autoMove = false, useEewVisual = false } = options;
     currentDisplayedEarthquake = eq;
 
     const { latitude, longitude } = eq.earthquake.hypocenter || {};
@@ -1843,7 +1834,7 @@ function renderEarthquakeOnMap(eq, options = {}) {
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
         const hypoLatLng = new L.LatLng(lat, lon);
         const hypoIconImage = L.icon({
-            iconUrl: 'assets/images/shingen.png',
+            iconUrl: useEewVisual ? 'assets/images/eew-shingen.png' : 'assets/images/shingen.png',
             iconSize: [40, 40],
             iconAnchor: [20, 20],
             popupAnchor: [0, -40]
@@ -1888,13 +1879,8 @@ function isEewIssuedNow() {
 
 function isPastEqViewDuringEew() {
     if (!isEewIssuedNow()) return false;
-    if (!selectedEarthquakeKey) return false;
-
-    const activeEewEq = getActiveEewEq();
-    const activeEewKey = getEarthquakeKey(activeEewEq);
-    if (!activeEewKey) return false;
-
-    return selectedEarthquakeKey !== activeEewKey;
+    const displayState = getDisplayEarthquakeState();
+    return Boolean(displayState.eq) && !displayState.useEewVisual;
 }
 
 function shouldRenderWaveForEq(eq) {
@@ -2639,8 +2625,7 @@ function updateEqHistory(eqData) {
 
         const selectHistoryEarthquake = () => {
             selectedEarthquakeKey = getEarthquakeKey(eq);
-            renderEarthquakeOnMap(eq, { autoMove: true });
-            lastRenderedEarthquakeKey = selectedEarthquakeKey;
+            refreshDisplayedEarthquake({ autoMove: true });
         };
 
         card.addEventListener("click", selectHistoryEarthquake);
@@ -2883,21 +2868,46 @@ function promptUsageNotice(onClose) {
     const modal = document.getElementById('usage-notice-modal');
     const backdrop = document.getElementById('usage-notice-backdrop');
     const okBtn = document.getElementById('usage-notice-ok-btn');
-    if (!modal || !backdrop || !okBtn) {
+    const skipNextCheckbox = document.getElementById('usage-notice-skip-next');
+    if (!modal || !backdrop || !okBtn || !skipNextCheckbox) {
+        if (typeof onClose === 'function') onClose();
+        return;
+    }
+
+    const shouldSkip = (() => {
+        try {
+            return window.localStorage.getItem(USAGE_NOTICE_DISMISSED_KEY) === '1';
+        } catch {
+            return false;
+        }
+    })();
+
+    if (shouldSkip) {
         if (typeof onClose === 'function') onClose();
         return;
     }
 
     const closeModal = () => {
+        try {
+            if (skipNextCheckbox.checked) {
+                window.localStorage.setItem(USAGE_NOTICE_DISMISSED_KEY, '1');
+            } else {
+                window.localStorage.removeItem(USAGE_NOTICE_DISMISSED_KEY);
+            }
+        } catch {
+            // Ignore storage failures.
+        }
         modal.hidden = true;
         if (typeof onClose === 'function') onClose();
     };
 
     if (!modal.dataset.bound) {
         okBtn.addEventListener('click', closeModal);
+        backdrop.addEventListener('click', closeModal);
         modal.dataset.bound = '1';
     }
 
+    skipNextCheckbox.checked = false;
     modal.hidden = false;
 }
 
@@ -2980,6 +2990,7 @@ function initializeContactDialog() {
 
 setTimeout(() => {
     promptUsageNotice(() => {
+        // 効果音の許可ダイアログは毎回表示する。
         promptInitialAudioPermission();
     });
 }, 300);
