@@ -95,8 +95,19 @@ async function fetchViaWorkerProxy(targetUrl, init) {
     return response;
 }
 
+const TEST_MODE_STORAGE_KEY = 'eqfast.devUnlock';
+const TEST_MODE_UNLOCK_VALUE = '64656275676d6f6465756e6c6f636b';
+
+function isTestModeUnlocked() {
+    try {
+        return window.localStorage.getItem(TEST_MODE_STORAGE_KEY) === TEST_MODE_UNLOCK_VALUE;
+    } catch {
+        return false;
+    }
+}
+
 const CONFIG = {
-    isTest: urlParams.has("test"),
+    isTest: urlParams.has("test") && isTestModeUnlocked(),
     testEventId: getTestEventId(),
 
     get apiurl() {
