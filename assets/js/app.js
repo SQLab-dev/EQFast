@@ -372,10 +372,16 @@ map.createPane("shindo_canvas").style.zIndex = 200;
 map.createPane("kyoshin_canvas").style.zIndex = 210;
 map.createPane("wavefront").style.zIndex = 350;
 map.createPane("shingen").style.zIndex = 400;
-map.createPane("tsunami_map").style.zIndex = 110;
+// Draw tsunami lines *under* Japan polygons so land masks inner half,
+// making the stroke appear outside (sea side) of the coastline.
+map.createPane("tsunami_map").style.zIndex = 2;
 
 let shindoLayer = L.layerGroup().addTo(map);
 let shindoFilledLayer = L.layerGroup().addTo(map);
+let tsunamiForecastRegionGeoJson = null;
+let tsunamiForecastRegionByName = new Map();
+let tsunamiOverlayLayer = null;
+let lastRenderedTsunamiAreas = null;
 let JMAPointsJson = null;
 let shindoCanvasLayer = null;
 let kyoshinCanvasLayer = null;
@@ -555,6 +561,174 @@ function convertWorldMapGeoJsonToWgs84(source) {
             };
         }),
     };
+}
+
+function convertTsunamiForecastGeoJsonToWgs84(source) {
+    // data/geo/tsunami-forecast-region.json is exported in WebMercator meters.
+    if (!source || !Array.isArray(source.features)) return source;
+    return {
+        ...source,
+        features: source.features.map((feature) => {
+            if (!feature?.geometry) return feature;
+            return {
+                ...feature,
+                geometry: {
+                    ...feature.geometry,
+                    coordinates: convertWorldMapCoordinatesToWgs84(feature.geometry.coordinates),
+                },
+            };
+        }),
+    };
+}
+
+function normalizeTsunamiGrade(raw) {
+    const value = String(raw || '').trim();
+    if (!value) return '';
+    if (value === 'MajorWarning' || value === 'Major') return 'MajorWarning';
+    if (value === 'Warning') return 'Warning';
+    if (value === 'Watch') return 'Watch';
+    // Some sources use "Forecast" / "None". Keep as-is for now.
+    return value;
+}
+
+function getTsunamiLineWeightForZoom(zoom, grade) {
+    const normalized = normalizeTsunamiGrade(grade);
+    const safeZoom = Number.isFinite(zoom) ? zoom : 6;
+
+    const BASE_ZOOM = 8;
+    const BASE_WEIGHT_NORMAL = 30;
+    const BASE_WEIGHT_MAJOR  = 60;
+
+    const baseWeight = normalized === 'MajorWarning' ? BASE_WEIGHT_MAJOR : BASE_WEIGHT_NORMAL;
+
+    const scaleFactor = Math.pow(2, safeZoom - BASE_ZOOM);
+    const weight = baseWeight * scaleFactor;
+
+    return Math.max(4, Math.min(80, weight));
+}
+
+function getTsunamiStyleByGrade(grade) {
+    const normalized = normalizeTsunamiGrade(grade);
+    const colorByGrade = {
+        MajorWarning: '#c800ff',
+        Warning: '#ff2801',
+        Watch: '#ffe600',
+    };
+    const color = colorByGrade[normalized] || '#ffe600';
+    const zoom = typeof map?.getZoom === 'function' ? map.getZoom() : 6;
+    return {
+        color,
+        weight: getTsunamiLineWeightForZoom(zoom, normalized),
+        opacity: 1,
+        lineCap: 'round',
+        lineJoin: 'round',
+    };
+}
+
+function clearTsunamiOverlay() {
+    if (!tsunamiOverlayLayer) return;
+    try {
+        map.removeLayer(tsunamiOverlayLayer);
+    } catch {
+        // ignore
+    }
+
+    // 点滅クラスを除去
+    const pane = map.getPane('tsunami_map');
+    if (pane) pane.classList.remove('tsunami-blinking');
+
+    tsunamiOverlayLayer = null;
+    lastRenderedTsunamiAreas = null;
+}
+
+function renderTsunamiOverlayFromAreas(areas) {
+    clearTsunamiOverlay();
+    if (!Array.isArray(areas) || areas.length === 0) return;
+    if (!tsunamiForecastRegionGeoJson || tsunamiForecastRegionByName.size === 0) return;
+
+    const features = [];
+    for (const area of areas) {
+        const name = String(area?.name || '').trim();
+        if (!name) continue;
+        const grade = normalizeTsunamiGrade(area?.grade);
+        const feature = tsunamiForecastRegionByName.get(name);
+        if (!feature) continue;
+        features.push({
+            ...feature,
+            properties: {
+                ...(feature.properties || {}),
+                __tsunami_grade: grade,
+            },
+        });
+    }
+
+    if (features.length === 0) return;
+    lastRenderedTsunamiAreas = areas;
+    tsunamiOverlayLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
+        pane: 'tsunami_map',
+        interactive: false,
+        style: (feature) => getTsunamiStyleByGrade(feature?.properties?.__tsunami_grade),
+    }).addTo(map);
+
+    // 点滅アニメーション用クラスを付与
+    const pane = map.getPane('tsunami_map');
+    if (pane) pane.classList.add('tsunami-blinking');
+}
+
+function refreshTsunamiOverlayStyle() {
+    if (!tsunamiOverlayLayer) return;
+    tsunamiOverlayLayer.setStyle((feature) => getTsunamiStyleByGrade(feature?.properties?.__tsunami_grade));
+}
+
+map.on('zoomend', () => {
+    refreshTsunamiOverlayStyle();
+});
+
+function pickLatestTsunamiAreasFromTestPayload(payload) {
+    // p2p-tsunami.json: Array of bulletins; choose the latest bulletin that has areas.
+    if (!Array.isArray(payload)) return [];
+    for (let i = payload.length - 1; i >= 0; i--) {
+        const item = payload[i];
+        const areas = item?.areas;
+        if (Array.isArray(areas) && areas.length > 0) return areas;
+    }
+    return [];
+}
+
+function loadTsunamiForecastRegionGeoJson() {
+    return new Promise((resolve) => {
+        $.getJSON('data/geo/tsunami-forecast-region.json')
+            .done((rawData) => {
+                const converted = convertTsunamiForecastGeoJsonToWgs84(rawData);
+                tsunamiForecastRegionGeoJson = converted;
+                const byName = new Map();
+                for (const feature of converted?.features || []) {
+                    const name = String(feature?.properties?.name || '').trim();
+                    if (!name) continue;
+                    byName.set(name, feature);
+                }
+                tsunamiForecastRegionByName = byName;
+                resolve(converted);
+            })
+            .fail((_, textStatus, errorThrown) => {
+                console.error('Failed to load data/geo/tsunami-forecast-region.json:', textStatus, errorThrown);
+                tsunamiForecastRegionGeoJson = null;
+                tsunamiForecastRegionByName = new Map();
+                resolve(null);
+            });
+    });
+}
+
+function loadTestModeTsunamiData() {
+    if (!CONFIG.isTest) return Promise.resolve(null);
+    return new Promise((resolve) => {
+        $.getJSON('data/tsunami_test/p2p-tsunami.json')
+            .done((data) => resolve(data))
+            .fail((_, textStatus, errorThrown) => {
+                console.warn('[test] Failed to load test tsunami JSON', textStatus, errorThrown);
+                resolve(null);
+            });
+    });
 }
 
 const worldMapDataReady = new Promise((resolve) => {
@@ -883,8 +1057,17 @@ const iconMap = {
     70: "int7"
 };
 
-Promise.all([preloadIcons(), worldMapDataReady, japanDataReady, loadStationData(), loadJma2001TravelTimeTable(), loadTestModeEewData()])
-    .then(async ([, , , , travelTable, eewData]) => {
+Promise.all([
+    preloadIcons(),
+    worldMapDataReady,
+    japanDataReady,
+    loadStationData(),
+    loadJma2001TravelTimeTable(),
+    loadTestModeEewData(),
+    loadTsunamiForecastRegionGeoJson(),
+    loadTestModeTsunamiData(),
+])
+    .then(async ([, , , , travelTable, eewData, , testTsunamiData]) => {
         jma2001TravelTable = travelTable;
         if (!CONFIG.isTest) {
             testModeEewEq = eewData?.eq || null;
@@ -903,6 +1086,11 @@ Promise.all([preloadIcons(), worldMapDataReady, japanDataReady, loadStationData(
 
         initWaveFrontLayers();
         initLiveEewStream();
+
+        if (CONFIG.isTest && testTsunamiData) {
+            const areas = pickLatestTsunamiAreasFromTestPayload(testTsunamiData);
+            renderTsunamiOverlayFromAreas(areas);
+        }
 
         updateData();
         setInterval(updateData, CONFIG.updateInterval);
@@ -4346,23 +4534,63 @@ async function initKyoshin() {
         });
     }
 
-    setInterval(async () => {
-        const nowMs = Date.now();
-        if (!CONFIG.isTest && latestTime - lastSync > 3600) {
-            await fetchLatestTime();
-            lastSync = latestTime;
-        } else if (!CONFIG.isTest) {
-            latestTime += 1;
+    let kyoshinLastTickMs = Date.now();
+    let kyoshinTickInFlight = false;
+
+    const kyoshinTick = async ({ forceSync = false } = {}) => {
+        if (kyoshinTickInFlight) return;
+        kyoshinTickInFlight = true;
+        try {
+            const nowMs = Date.now();
+
+            if (!CONFIG.isTest) {
+                const elapsedSec = Math.max(1, Math.floor((nowMs - kyoshinLastTickMs) / 1000));
+                kyoshinLastTickMs += elapsedSec * 1000;
+
+                // If the tab was throttled (background), resync from server time.
+                if (forceSync || elapsedSec >= 6) {
+                    await fetchLatestTime();
+                    lastSync = latestTime;
+                } else {
+                    latestTime += elapsedSec;
+                    if (latestTime - lastSync > 3600) {
+                        await fetchLatestTime();
+                        lastSync = latestTime;
+                    }
+                }
+            }
+
+            const { shindoResult, pgaResult, colorResult, pgaColorResult } = await updateImages(latestTime, kyoshinPoints);
+            processKyoshin(nowMs, kyoshinPoints, shindoResult, colorResult);
+            window._lastShindoResult = shindoResult;
+            window._lastColorResult = colorResult;
+            window._lastPgaColorResult = pgaColorResult;
+            drawKyoshinPoints(kyoshinPoints, kyoshinMode === 'shindo' ? colorResult : pgaColorResult);
+            setLastDataUpdateTime(CONFIG.isTest ? CONFIG.getSimulatedTime() : new Date(latestTime * 1000));
+            console.log('[強震モニタ] 更新:', latestTime, shindoResult.slice(0, 5));
+        } catch (error) {
+            console.warn('[強震モニタ] 更新失敗:', error);
+        } finally {
+            kyoshinTickInFlight = false;
         }
-    const { shindoResult, pgaResult, colorResult, pgaColorResult } = await updateImages(latestTime, kyoshinPoints);
-    processKyoshin(nowMs, kyoshinPoints, shindoResult, colorResult);
-    window._lastShindoResult = shindoResult;
-    window._lastColorResult = colorResult;
-    window._lastPgaColorResult = pgaColorResult;
-    drawKyoshinPoints(kyoshinPoints, kyoshinMode === 'shindo' ? colorResult : pgaColorResult);
-        setLastDataUpdateTime(CONFIG.isTest ? CONFIG.getSimulatedTime() : new Date(latestTime * 1000));
-        console.log('[強震モニタ] 更新:', latestTime, shindoResult.slice(0, 5));
+    };
+
+    // Run once immediately.
+    await kyoshinTick({ forceSync: !CONFIG.isTest });
+
+    setInterval(() => {
+        kyoshinTick();
     }, 1000);
+
+    const handleResume = () => {
+        kyoshinLastTickMs = Date.now();
+        kyoshinTick({ forceSync: !CONFIG.isTest });
+    };
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) handleResume();
+    });
+    window.addEventListener('focus', handleResume);
 }
 
 async function loadPoints() {
