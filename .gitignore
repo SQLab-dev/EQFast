@@ -11,3 +11,6 @@ yarn-error.log*
 # Generated Kyoshin replay assets
 data/kyoshin_data/
 data/replay/*/kyoshin/
+
+# test
+data/test

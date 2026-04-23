@@ -319,6 +319,8 @@ var map = L.map('map', {
     scrollWheelZoom: false,
     smoothWheelZoom: true,
     smoothSensitivity: 1.5,
+    minZoom: 4,
+    maxZoom: 10,
 }).setView([36.575, 137.984], 6);
 
 L.control.scale({ maxWidth: 150, position: 'bottomright', imperial: false }).addTo(map);
