@@ -1038,3 +1038,13 @@ body {
 .leaflet-proxy, .leaflet-pane {
     transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1) !important;
 }
+
+@keyframes tsunami-blink {
+    0%, 85.7%  { opacity: 1; }
+    85.7%, 100% { opacity: 0.15; }
+}
+
+.tsunami-blinking {
+    animation: tsunami-blink 3.5s step-end infinite;
+}
+
