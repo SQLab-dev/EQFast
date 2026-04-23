@@ -735,7 +735,7 @@ function loadTsunamiForecastRegionGeoJson() {
 function loadTestModeTsunamiData() {
     if (!CONFIG.isTest) return Promise.resolve(null);
     return new Promise((resolve) => {
-        $.getJSON('data/tsunami_test/p2p-tsunami.json')
+        $.getJSON('data/test/p2p-tsunami.json')
             .done((data) => resolve(data))
             .fail((_, textStatus, errorThrown) => {
                 console.warn('[test] Failed to load test tsunami JSON', textStatus, errorThrown);
