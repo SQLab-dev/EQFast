@@ -1,54 +1,44 @@
 # EQFast
 
-地震情報を取得して表示するプロジェクトです。
+EQFast は、ブラウザ上で日本全国の地震情報を表示するアプリケーションです。
 
-- 地震情報の受信
-- 過去の地震情報の表示(現在は履歴のみ)
-- 強震モニタからの観測点色取得
+## 概要
 
-に対応しています。
+- 最新の地震情報を表示
+- 過去の地震履歴をリスト表示
+- NIED強震モニタのリアルタイム震度/加速度表示
+
+## 主要な機能
+
+- 地震情報と緊急地震速報(EEW)の表示
+- 地震履歴の表示
+- 強震モニタ表示切替（震度/加速度）
+- 音声読み上げ
+- 効果音再生
 
 ## クレジット
 
-- 地震情報・履歴の取得 : [P2P地震情報 API](https://www.p2pquake.net/develop/json_api_v2/)
-- リアルタイム震度・加速度 : [NIED強震モニタ](http://www.kmoni.bosai.go.jp/)
-- 効果音 : [OtoLogic](https://otologic.jp/)
-- 地図データ : [気象庁](https://www.jma.go.jp/)
+### API
 
-その他クレジットはアプリ内に記載しています。
+- 地震情報 : [P2P地震情報 API](https://www.p2pquake.net/develop/json_api_v2/)
+- 緊急地震速報 : [Wolfx Open API](https://wolfx.jp/apidoc?nodetect)
+- 強震モニタ : [NIED 強震モニタ](http://www.kmoni.bosai.go.jp/)
 
-## 参考資料
+### 効果音
 
-- [強震モニタから震度と加速度を取る](https://note.com/t0729/n/n749814e492cd)
-- [多項式補間を使用して強震モニタ画像から数値データを決定する](https://qiita.com/NoneType1/items/a4d2cf932e20b56ca444)
+- [OtoLogic](https://otologic.jp/)
 
-## 注意事項
+### 地図
 
-このプロジェクトは、防災科学技術研究所、P2P地震情報(開発者:たくや様)、気象庁、その他のサービスとは一切関係ありません。本プロジェクトに関するお問い合わせは[こちら](https://docs.google.com/forms/d/e/1FAIpQLSdB071foWH-0Wb1YMfDrvUOZAJoRu3RKJXG1gtZmK4GCN-g_g/viewform)までお願いします。
+- [Leaflet](https://leafletjs.com/)
+- [気象庁](https://www.jma.go.jp/)
+- [Natural Earth (Japan POV)](https://www.naturalearthdata.com/downloads/10m-cultural-vectors/)
 
-## 実行方法 (Next.js)
+### フォント
 
-このリポジトリは、既存の `assets/` と `data/` を保持したまま Next.js で起動できる構成に移行しています。
+- [Noto Sans JP](https://fonts.google.com/noto/specimen/Noto+Sans+JP?query=noto+sans+jp)
+- [Jost](https://fonts.google.com/specimen/Jost?query=jost)
 
-1. 依存パッケージをインストール
+### その他
 
-```bash
-npm install
-```
-
-1. 開発サーバーを起動
-
-```bash
-npm run dev
-```
-
-1. ブラウザで確認
-
-```text
-http://localhost:3000
-```
-
-### 補足
-
-- 既存のプレーン HTML エントリである `index.html` は互換性確認のため残しています。
-- Next.js 実行時は `server.cjs` が `/assets` と `/data` を静的配信するため、既存の JS の相対パスを変更せずに動作します。
+- [SmoothWheelZoom](https://github.com/mutsuyuki/Leaflet.SmoothWheelZoom)
