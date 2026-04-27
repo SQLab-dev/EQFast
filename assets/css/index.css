@@ -12,7 +12,6 @@ body {
     font-family: 'Jost', 'Noto Sans', sans-serif;
     background-color: #0d0e13;
     display: flex;
-    overflow: hidden;
 }
 
 #map {
@@ -1049,8 +1048,15 @@ body {
 }
 
 
+.terms-app {
+    color: #6c788d;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 40px;
+}
+
 .terms {
-    padding: 30px;
+    padding: 30px 10%;
     border-radius: 20px;
     width: 100vw;
 }
@@ -1063,8 +1069,7 @@ body {
 }
 
 .terms-hr {
-    margin: 12px 0;
-    margin: 0 auto;
+    margin-top: 12px 0;
     border: none;
     border-top: 0.5px solid #2a364e;
 }

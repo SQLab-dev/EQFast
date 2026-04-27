@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 </head>
-    <body>
+    <body style="overflow: hidden;">
         <div class="side-panel">
             <div class="eew-card" id="eew-card" hidden>
                 <h2 class="eew-card_status"></h2>
@@ -221,10 +221,6 @@
                 <p class="audio-permission-title" id="usage-notice-title">注意事項</p>
                 <div class="audio-permission-text usage-notice-text">
                     <p>
-                        <strong>関係機関について</strong>
-                        <br>本アプリケーションは個人によって開発されたものであり、国立研究開発法人防災科学技術研究所、気象庁、および各データ提供元、関係機関とは一切関係ありません。本アプリに関するお問い合わせを各機関へ行うことは固くお断りいたします。
-                    </p>
-                    <p>
                         <strong>観測点について</strong>
                         <br>表示されるリアルタイム観測点のデータは、設置地点の揺れを可視化するものであり、地震の発生を予知、または事前に通知するものではなく、特定の観測点をその他の情報と関連付けて注目することは適切ではありません。車の通行や工事などの生活振動により、局所的に揺れが大きく見えることがあります。気象庁やその他機関の業務を妨げることの無いよう、ご注意ください。
                     </p>
@@ -234,11 +230,10 @@
                     </p>
                     <p>
                         <strong>免責事項</strong>
-                        <br>通信状況や機器の不具合等により、表示する情報が異常な値を示したり、データの更新が遅延したりする場合があります。本アプリの利用により生じた損害等について、開発者は一切の責任を負いかねますので、あらかじめご了承ください。
-                        <br>また、データ提供元の仕様変更、サーバー維持の困難、メンテナンス等の理由により、予告無くサービスを停止・終了する場合があります。
+                        <br>本アプリケーションは、可能な限り正確な情報提供に努めていますが、利用者の通信環境、機器の不具合、データ提供元の状況等により、情報の遅延や誤報が発生する可能性があります。開発者は、本アプリケーションが提供する情報の正確性、適時性、および特定の目的への適合性について保証しません。本アプリケーションの利用により生じた直接的、間接的な損害（精神的苦痛、その他の金銭的損失を含む一切の不利益）について、開発者は一切の責任を負いません。
                     </p>
                     <p>
-                        <strong>禁止事項については、<a class="audio-permission-link" href="">こちら</a>をご覧ください。</strong>
+                        <strong>本アプリケーションを利用することにより、<a class="audio-permission-link" href="pages/terms.html" target="_blank">利用規約</a>に同意したものとみなされます。</strong>
                     </p>
                 </div>
                 <label class="usage-notice-option" for="usage-notice-skip-next">
