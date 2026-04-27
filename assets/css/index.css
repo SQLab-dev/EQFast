@@ -1048,3 +1048,36 @@ body {
     animation: tsunami-blink 3.5s step-end infinite;
 }
 
+
+.terms {
+    padding: 30px;
+    border-radius: 20px;
+    width: 100vw;
+}
+
+.terms-title {
+    font-size: 27px;
+    font-weight: 600;
+    color: #ffffff;
+    text-align: center;
+}
+
+.terms-hr {
+    margin: 12px 0;
+    margin: 0 auto;
+    border: none;
+    border-top: 0.5px solid #2a364e;
+}
+
+.terms-section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 24px 0 12px;
+}
+
+.terms-section-text {
+    font-size: 15px;
+    color: #dae3f3;
+    line-height: 1.6;
+}

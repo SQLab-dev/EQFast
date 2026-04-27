@@ -364,6 +364,9 @@ map.attributionControl.addAttribution(
 map.attributionControl.addAttribution(
     "<a href='https://github.com/mutsuyuki/Leaflet.SmoothWheelZoom' target='_blank'>SmoothWheelZoom</a>"
 );
+map.attributionControl.addAttribution(
+    "<a href='https://www.naturalearthdata.com/downloads/10m-cultural-vectors/' target='_blank'>Natural Earth</a>"
+);
 
 map.addControl(new resetViewControl());
 
