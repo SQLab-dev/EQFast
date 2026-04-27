@@ -3179,7 +3179,7 @@ function initializeContactDialog() {
         });
 
         githubIssueButton.addEventListener('click', () => {
-            openContactUrl('https://github.com/SQLab-dev/EQFast-dev/issues');
+            openContactUrl('https://github.com/SQLab-dev/EQFast/issues');
         });
 
         googleFormButton.addEventListener('click', () => {
