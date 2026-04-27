@@ -1086,3 +1086,11 @@ body {
     color: #dae3f3;
     line-height: 1.6;
 }
+
+.terms-section-license {
+    margin-left: 20px;
+}
+
+.terms-section-license-content {
+    margin-bottom: 10px;
+}
