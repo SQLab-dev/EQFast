@@ -339,6 +339,7 @@ map.zoomControl.setPosition('bottomleft');
 
 const resetViewControl = L.Control.extend({
     options: { position: 'bottomleft' },
+
     onAdd: function () {
         const btn = L.DomUtil.create('a', 'leaflet-control-zoom-reset');
         btn.innerHTML = '';
